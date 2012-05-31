@@ -1,6 +1,6 @@
 Name:                Cron
 Version:             0.0.0
-Description:         Cron parser
+Description:         Cron datatypes and parser
 License:             MIT
 License-file:        LICENSE
 Author:              Michael Xavier
@@ -11,7 +11,8 @@ Cabal-Version:       >= 1.6
 extra-source-files:  README.md
 
 library
- Exposed-modules: Cron
+ Exposed-modules: System.Cron,
+                  System.Cron.Parser
  Ghc-Options:     -Wall
  build-depends:   base            >= 4        && < 5,
                   attoparsec      == 0.10.*,
