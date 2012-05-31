@@ -124,10 +124,3 @@ maxValue CHour       = 23
 maxValue CDayOfMonth = 31
 maxValue CMonth      = 12
 maxValue CDayOfWeek  = 6
-        
-
---toDiffTimes :: CronSchedule -> [NominalDiffTime]
---toDiffTimes = undefined
-
---inRange :: (Bounded a, Ord a) => a -> Bool
---inRange a =  a >= minBound a && a <= maxBound a
