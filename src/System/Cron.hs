@@ -20,8 +20,8 @@ import Data.Time.Clock (UTCTime(..))
 import Data.Time.LocalTime (timeToTimeOfDay,
                             TimeOfDay(..))
 
-data CronSchedule = CronSchedule { minutes :: MinuteSpec,
-                                   hours :: HourSpec,
+data CronSchedule = CronSchedule { minute :: MinuteSpec,
+                                   hour :: HourSpec,
                                    dayOfMonth :: DayOfMonthSpec,
                                    month :: MonthSpec,
                                    dayOfWeek :: DayOfWeekSpec}
@@ -61,24 +61,24 @@ weekly = daily { dayOfWeek = DaysOfWeek $ SpecificField 0,
                  dayOfMonth = DaysOfMonth $ SpecificField 0 }
 
 daily :: CronSchedule
-daily = hourly { hours = Hours $ SpecificField 0 }
+daily = hourly { hour = Hours $ SpecificField 0 }
 
 hourly :: CronSchedule
-hourly = everyMinute { minutes = Minutes $ SpecificField 0 }
+hourly = everyMinute { minute = Minutes $ SpecificField 0 }
 
 everyMinute :: CronSchedule
-everyMinute = CronSchedule { minutes    = Minutes Star,
-                             hours      = Hours Star,
+everyMinute = CronSchedule { minute     = Minutes Star,
+                             hour       = Hours Star,
                              dayOfMonth = DaysOfMonth Star,
                              month      = Months Star,
                              dayOfWeek  = DaysOfWeek Star}
 
 scheduleMatches :: CronSchedule -> UTCTime -> Bool
-scheduleMatches CronSchedule { minutes = Minutes mins,
-                               hours   = Hours hrs,
+scheduleMatches CronSchedule { minute     = Minutes mins,
+                               hour       = Hours hrs,
                                dayOfMonth = DaysOfMonth doms,
-                               month   = Months months,
-                               dayOfWeek = DaysOfWeek dows }
+                               month      = Months months,
+                               dayOfWeek  = DaysOfWeek dows }
                 UTCTime { utctDay = uDay,
                           utctDayTime = uTime } = all id validations
   where (_, mth, dom) = toGregorian uDay
