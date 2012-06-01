@@ -14,6 +14,8 @@ module System.Cron (CronSchedule(..),
                     everyMinute,
                     scheduleMatches) where
 
+import Data.List (intercalate)
+
 import Data.Time.Calendar (toGregorian)
 import Data.Time.Calendar.WeekDate (toWeekDate)
 import Data.Time.Clock (UTCTime(..))
@@ -25,29 +27,59 @@ data CronSchedule = CronSchedule { minute :: MinuteSpec,
                                    dayOfMonth :: DayOfMonthSpec,
                                    month :: MonthSpec,
                                    dayOfWeek :: DayOfWeekSpec}
-                                   deriving (Show, Eq)
+                                   deriving (Eq)
+
+instance Show CronSchedule where
+  show cs = "CronSchedule " ++ parts
+    where parts = intercalate " " [show $ minute cs,
+                                   show $ hour cs,
+                                   show $ dayOfMonth cs,
+                                   show $ month cs,
+                                   show $ dayOfWeek cs]
 
 data MinuteSpec = Minutes CronField
-                  deriving (Show, Eq)
+                  deriving (Eq)
+
+instance Show MinuteSpec where
+  show (Minutes cf) = show cf
 
 data HourSpec = Hours CronField
-                deriving (Show, Eq)
+                deriving (Eq)
+
+instance Show HourSpec where
+  show (Hours cf) = show cf
 
 data DayOfMonthSpec = DaysOfMonth CronField
-                      deriving (Show, Eq)
+                      deriving (Eq)
+
+instance Show DayOfMonthSpec where
+  show (DaysOfMonth cf) = show cf
 
 data MonthSpec = Months CronField
-                 deriving (Show, Eq)
+                 deriving (Eq)
+
+instance Show MonthSpec where
+  show (Months cf) = show cf
 
 data DayOfWeekSpec = DaysOfWeek CronField
-                     deriving (Show, Eq)
+                     deriving (Eq)
+
+instance Show DayOfWeekSpec where
+  show (DaysOfWeek cf) = show cf
 
 data CronField = Star                  |
                  SpecificField Int     |
-                 Range Int Int         |
+                 RangeField Int Int    |
                  ListField [CronField] |
                  DividedField CronField Int
-                 deriving (Show, Eq)
+                 deriving (Eq)
+
+instance Show CronField where
+  show Star                  = "*"
+  show (SpecificField i)     = show i
+  show (RangeField x y)      = show x ++ "-" ++ show y
+  show (ListField xs)        = intercalate "," $ map show xs
+  show (DividedField f step) = show f ++ "/" ++ show step
 
 
 yearly :: CronSchedule
@@ -95,14 +127,14 @@ scheduleMatches CronSchedule { minute     = Minutes mins,
 matchField :: Int -> CronUnit -> CronField -> Bool
 matchField _ _ Star                      = True
 matchField x _ (SpecificField y)         = x == y
-matchField x _ (Range y y')              = x >= y && x <= y'
+matchField x _ (RangeField y y')              = x >= y && x <= y'
 matchField x unit (ListField fs)         = any (matchField x unit) fs
 matchField x unit (DividedField f step) = elem x $ expandDivided f step unit
 
 expandDivided :: CronField -> Int -> CronUnit -> [Int]
 expandDivided Star step unit                 = fillTo 0 max' step
   where max' = maxValue unit
-expandDivided (Range start finish) step unit = fillTo start finish' step
+expandDivided (RangeField start finish) step unit = fillTo start finish' step
   where finish' = minimum [finish, maxValue unit] 
 expandDivided _ _ _                          = [] -- invalid
 
