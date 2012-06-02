@@ -117,24 +117,24 @@ instance Show CronField where
   show (StepField f step) = show f ++ "/" ++ show step
 
 
--- | Shorthand for every January 1st at midnight. Parsed with @yearly
+-- | Shorthand for every January 1st at midnight. Parsed with \@yearly
 yearly :: CronSchedule
 yearly = monthly { month = Months $ SpecificField 1 }
 
--- | Shorthand for every 1st of the month at midnight. Parsed with @monthly
+-- | Shorthand for every 1st of the month at midnight. Parsed with \@monthly
 monthly :: CronSchedule
 monthly = hourly { dayOfMonth = DaysOfMonth $ SpecificField 1 }
 
--- | Shorthand for every sunday at midnight. Parsed with @weekly
+-- | Shorthand for every sunday at midnight. Parsed with \@weekly
 weekly :: CronSchedule
 weekly = daily { dayOfWeek = DaysOfWeek $ SpecificField 0,
                  dayOfMonth = DaysOfMonth $ SpecificField 0 }
 
--- | Shorthand for every day at midnight. Parsed with @daily
+-- | Shorthand for every day at midnight. Parsed with \@daily
 daily :: CronSchedule
 daily = hourly { hour = Hours $ SpecificField 0 }
 
--- | Shorthand for every hour on the hour. Parsed with @hourly
+-- | Shorthand for every hour on the hour. Parsed with \@hourly
 hourly :: CronSchedule
 hourly = everyMinute { minute = Minutes $ SpecificField 0 }
 

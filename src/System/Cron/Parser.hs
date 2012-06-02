@@ -1,4 +1,25 @@
 {-# LANGUAGE OverloadedStrings #-}
+--------------------------------------------------------------------
+-- |
+-- Module      : System.Cron.Parser
+-- Description : Attoparsec parser for cron formatted intervals
+-- Copyright   : (c) Michael Xavier 2012
+-- License     : MIT
+--
+-- Maintainer: Michael Xavier <michael@michaelxavier.net>
+-- Portability: portable
+--
+-- Attoparsec parser combinator for cron schedules. See cron documentation for
+-- how those are formatted.
+-- 
+-- > import Data.Attoparsec.Text (parseOnly)
+-- > import System.Cron.Parser
+-- > 
+-- > main :: IO ()
+-- > main = do
+-- >   print $ parseOnly cronSchedule "*/2 * 3 * 4,5,6"
+-- 
+--------------------------------------------------------------------
 module System.Cron.Parser (cronSchedule) where
 
 import           System.Cron
@@ -9,7 +30,7 @@ import qualified Data.Attoparsec.Text as A
 
 -- | Attoparsec Parser for a cron schedule. Complies fully with the standard
 -- cron format.  Also includes the following shorthand formats which cron also
--- supports: @yearly, @monthly, @weekly, @daily, @hourly
+-- supports: \@yearly, \@monthly, \@weekly, \@daily, \@hourly
 cronSchedule :: Parser CronSchedule
 cronSchedule = yearlyP  <|>
                monthlyP <|>
