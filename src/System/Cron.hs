@@ -14,13 +14,12 @@ module System.Cron (CronSchedule(..),
                     everyMinute,
                     scheduleMatches) where
 
-import Data.List (intercalate)
+import           Data.List                   (intercalate)
 
-import Data.Time.Calendar (toGregorian)
-import Data.Time.Calendar.WeekDate (toWeekDate)
-import Data.Time.Clock (UTCTime(..))
-import Data.Time.LocalTime (timeToTimeOfDay,
-                            TimeOfDay(..))
+import           Data.Time.Calendar          (toGregorian)
+import           Data.Time.Calendar.WeekDate (toWeekDate)
+import           Data.Time.Clock             (UTCTime(..))
+import           Data.Time.LocalTime         (TimeOfDay(..), timeToTimeOfDay)
 
 data CronSchedule = CronSchedule { minute :: MinuteSpec,
                                    hour :: HourSpec,
@@ -123,20 +122,20 @@ scheduleMatches CronSchedule { minute     = Minutes mins,
                                     (mth, CMonth, months),
                                     (dow, CDayOfWeek, dows)]
         validate (x, y, z) = matchField x y z
-        
+
 matchField :: Int -> CronUnit -> CronField -> Bool
 matchField _ _ Star                      = True
 matchField x _ (SpecificField y)         = x == y
-matchField x _ (RangeField y y')              = x >= y && x <= y'
+matchField x _ (RangeField y y')         = x >= y && x <= y'
 matchField x unit (ListField fs)         = any (matchField x unit) fs
 matchField x unit (StepField f step) = elem x $ expandDivided f step unit
 
 expandDivided :: CronField -> Int -> CronUnit -> [Int]
-expandDivided Star step unit                 = fillTo 0 max' step
+expandDivided Star step unit                      = fillTo 0 max' step
   where max' = maxValue unit
 expandDivided (RangeField start finish) step unit = fillTo start finish' step
-  where finish' = minimum [finish, maxValue unit] 
-expandDivided _ _ _                          = [] -- invalid
+  where finish' = minimum [finish, maxValue unit]
+expandDivided _ _ _                               = [] -- invalid
 
 fillTo :: Int -> Int -> Int -> [Int]
 fillTo start finish step

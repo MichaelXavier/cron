@@ -1,16 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 module System.Cron.Parser (cronSchedule) where
 
-import System.Cron
+import           System.Cron
 
-import Control.Applicative ((<*>),
-                            (*>),
-                            (<*),
-                            (<$>),
-                            (<|>),
-                            pure)
+import           Control.Applicative  (pure, (*>), (<$>), (<*), (<*>), (<|>))
+import           Data.Attoparsec.Text (Parser)
 import qualified Data.Attoparsec.Text as A
-import Data.Attoparsec.Text (Parser)
 
 cronSchedule :: Parser CronSchedule
 cronSchedule = yearlyP  <|>
@@ -51,12 +46,12 @@ cronFieldP = steppedP  <|>
                         steppedP <|>
                         specificP
         stepListP     = ListField <$> A.sepBy1 stepListableP (A.char ',')
-        stepListableP = starP    <|>
+        stepListableP = starP  <|>
                         rangeP
         steppedP      = StepField <$> steppableP <*> (A.char '/' *> parseInt)
-        steppableP    = starP          <|>
-                        rangeP         <|>
-                        stepListP       <|>
+        steppableP    = starP     <|>
+                        rangeP    <|>
+                        stepListP <|>
                         specificP
         specificP     = SpecificField <$> parseInt
 
@@ -76,7 +71,7 @@ hourlyP :: Parser CronSchedule
 hourlyP  = A.string "@hourly"  *> pure hourly
 
 
---TODO: must handle a combination of many of these. EITHER just *, OR a list of 
+--TODO: must handle a combination of many of these. EITHER just *, OR a list of
 minutesP :: Parser MinuteSpec
 minutesP = Minutes <$> cronFieldP
 
