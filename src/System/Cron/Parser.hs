@@ -12,7 +12,6 @@ import Control.Applicative ((<*>),
 import qualified Data.Attoparsec.Text as A
 import Data.Attoparsec.Text (Parser)
 
---TODO: peek first character
 cronSchedule :: Parser CronSchedule
 cronSchedule = yearlyP  <|>
                monthlyP <|>
@@ -32,7 +31,7 @@ classicP = CronSchedule <$> (minutesP    <* space)
   where space = A.char ' '
 
 cronFieldP :: Parser CronField
-cronFieldP = dividedP  <|>
+cronFieldP = steppedP  <|>
              rangeP    <|>
              listP     <|>
              starP     <|>
@@ -49,15 +48,15 @@ cronFieldP = dividedP  <|>
         listP         = reduceList <$> A.sepBy1 listableP (A.char ',')
         listableP     = starP    <|>
                         rangeP   <|>
-                        dividedP <|>
+                        steppedP <|>
                         specificP
-        divListP      = ListField <$> A.sepBy1 divListableP (A.char ',')
-        divListableP  = starP    <|>
+        stepListP     = ListField <$> A.sepBy1 stepListableP (A.char ',')
+        stepListableP = starP    <|>
                         rangeP
-        dividedP      = DividedField <$> divisibleP <*> (A.char '/' *> parseInt)
-        divisibleP    = starP          <|>
+        steppedP      = StepField <$> steppableP <*> (A.char '/' *> parseInt)
+        steppableP    = starP          <|>
                         rangeP         <|>
-                        divListP       <|>
+                        stepListP       <|>
                         specificP
         specificP     = SpecificField <$> parseInt
 

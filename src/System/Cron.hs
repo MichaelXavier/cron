@@ -71,7 +71,7 @@ data CronField = Star                  |
                  SpecificField Int     |
                  RangeField Int Int    |
                  ListField [CronField] |
-                 DividedField CronField Int
+                 StepField CronField Int
                  deriving (Eq)
 
 instance Show CronField where
@@ -79,7 +79,7 @@ instance Show CronField where
   show (SpecificField i)     = show i
   show (RangeField x y)      = show x ++ "-" ++ show y
   show (ListField xs)        = intercalate "," $ map show xs
-  show (DividedField f step) = show f ++ "/" ++ show step
+  show (StepField f step) = show f ++ "/" ++ show step
 
 
 yearly :: CronSchedule
@@ -129,7 +129,7 @@ matchField _ _ Star                      = True
 matchField x _ (SpecificField y)         = x == y
 matchField x _ (RangeField y y')              = x >= y && x <= y'
 matchField x unit (ListField fs)         = any (matchField x unit) fs
-matchField x unit (DividedField f step) = elem x $ expandDivided f step unit
+matchField x unit (StepField f step) = elem x $ expandDivided f step unit
 
 expandDivided :: CronField -> Int -> CronUnit -> [Int]
 expandDivided Star step unit                 = fillTo 0 max' step

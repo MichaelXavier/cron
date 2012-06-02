@@ -36,8 +36,8 @@ describeCronSchedule = describe "cronSchedule" $ do
 
   it "parses step values" $
     assertSuccessfulParse "*/2 * 2-10/4 * *"
-                          stars { minute     = Minutes (DividedField Star 2),
-                                  dayOfMonth  = DaysOfMonth (DividedField (RangeField 2 10) 4) }
+                          stars { minute     = Minutes (StepField Star 2),
+                                  dayOfMonth  = DaysOfMonth (StepField (RangeField 2 10) 4) }
 
   it "refuses to parse recursive steps" $
     assertFailedParse "*/2/3 * * * *"
@@ -75,7 +75,7 @@ describeCronSchedule = describe "cronSchedule" $ do
                                                                        SpecificField 4]) }
   it "parses steps at the last field" $
     assertSuccessfulParse "* * * * */4"
-                           stars { dayOfWeek  = DaysOfWeek (DividedField Star 4) }
+                           stars { dayOfWeek  = DaysOfWeek (StepField Star 4) }
   where assertSuccessfulParse txt expected = doParse txt ~?= Right expected
         assertFailedParse txt = isLeft (doParse txt) ~?= True
         isLeft (Left _)       = True

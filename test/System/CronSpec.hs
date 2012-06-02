@@ -36,22 +36,22 @@ describeScheduleMatches = describe "ScheduleMatches" $ do
                                                        SpecificField 3])}
                     (day 2 3 1 2)
   it "matches a step field" $
-     scheduleMatches stars { dayOfMonth = DaysOfMonth (DividedField (RangeField 10 16) 2)}
+     scheduleMatches stars { dayOfMonth = DaysOfMonth (StepField (RangeField 10 16) 2)}
                      (day 5 12 1 2)
   it "does not match something missing the step field" $
-    not $ scheduleMatches stars { dayOfMonth = DaysOfMonth (DividedField (RangeField 10 16) 2)}
+    not $ scheduleMatches stars { dayOfMonth = DaysOfMonth (StepField (RangeField 10 16) 2)}
                           (day 5 13 1 2)
 
   it "matches starred stepped fields" $
-    scheduleMatches stars { minute = Minutes (DividedField Star 2)}
+    scheduleMatches stars { minute = Minutes (StepField Star 2)}
                           (day 5 13 1 4)
 
   it "does not match fields that miss starred stepped fields" $
-    not $ scheduleMatches stars { minute = Minutes (DividedField Star 2)}
+    not $ scheduleMatches stars { minute = Minutes (StepField Star 2)}
                           (day 5 13 1 5)
 
   it "matches multiple fields at once" $
-    scheduleMatches stars { minute     = Minutes (DividedField Star 2),
+    scheduleMatches stars { minute     = Minutes (StepField Star 2),
                             dayOfMonth = DaysOfMonth (SpecificField 3),
                             hour       = Hours (RangeField 10 14) }
                     (day 5 3 13 2)
@@ -79,7 +79,7 @@ describeShow = describe "show" $ do
          "CronSchedule * 7-10 * * *"
 
   it "formats steps" $
-    show stars { dayOfMonth = DaysOfMonth (DividedField (ListField [SpecificField 3, SpecificField 5]) 2)} ~?=
+    show stars { dayOfMonth = DaysOfMonth (StepField (ListField [SpecificField 3, SpecificField 5]) 2)} ~?=
          "CronSchedule * * 3,5/2 * *"
 
 stars :: CronSchedule
