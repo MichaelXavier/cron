@@ -1,4 +1,32 @@
---TODO: rename divided to step or stepped
+--------------------------------------------------------------------
+-- |
+-- Module      : System.Cron
+-- Description : Datatype for Cron Schedule and helpful functions
+-- Copyright   : (c) Michael Xavier 2012
+-- License     : MIT
+--
+-- Maintainer: Michael Xavier <michael@michaelxavier.net>
+-- Portability: portable
+--
+-- Toplevel module for Cron specifying a cron schedule and several convenience
+-- functions for dealing with cron schedules
+-- 
+-- > import Control.Concurrent
+-- > import Control.Monad
+-- > import Data.Time.Clock
+-- > import System.Cron
+-- > 
+-- > main :: IO ()
+-- > main = do
+-- >   forever do
+-- >     now <- getCurrentTime
+-- >     when (scheduleMatches schedule now) doWork
+-- >     putStrLn "sleeping"
+-- >     threadDelay 100000
+-- >   where doWork   = putStrLn "Time to work"
+-- >         schedule = hourly
+-- 
+--------------------------------------------------------------------
 module System.Cron (CronSchedule(..),
                     MinuteSpec(..),
                     HourSpec(..),
@@ -21,11 +49,13 @@ import           Data.Time.Calendar.WeekDate (toWeekDate)
 import           Data.Time.Clock             (UTCTime(..))
 import           Data.Time.LocalTime         (TimeOfDay(..), timeToTimeOfDay)
 
-data CronSchedule = CronSchedule { minute :: MinuteSpec,
-                                   hour :: HourSpec,
-                                   dayOfMonth :: DayOfMonthSpec,
-                                   month :: MonthSpec,
-                                   dayOfWeek :: DayOfWeekSpec}
+-- | Specification for a cron expression
+data CronSchedule = CronSchedule { minute     :: MinuteSpec,     -- ^ Which minutes to run. First field in a cron specification.
+                                   hour       :: HourSpec,       -- ^ Which hours to run. Second field in a cron specification.
+                                   dayOfMonth :: DayOfMonthSpec, -- ^ Which days of the month to run. Third field in a cron specification.
+                                   month      :: MonthSpec,      -- ^ Which months to run. Fourth field in a cron specification.
+                                   dayOfWeek  :: DayOfWeekSpec   -- ^ Which days of the week to run. Fifth field in a cron specification.
+                                 }
                                    deriving (Eq)
 
 instance Show CronSchedule where
@@ -36,41 +66,47 @@ instance Show CronSchedule where
                            show $ month cs,
                            show $ dayOfWeek cs]
 
+-- | Minutes field of a cron expression
 data MinuteSpec = Minutes CronField
                   deriving (Eq)
 
 instance Show MinuteSpec where
   show (Minutes cf) = show cf
 
+-- | Hours field of a cron expression
 data HourSpec = Hours CronField
                 deriving (Eq)
 
 instance Show HourSpec where
   show (Hours cf) = show cf
 
+-- | Day of month field of a cron expression
 data DayOfMonthSpec = DaysOfMonth CronField
                       deriving (Eq)
 
 instance Show DayOfMonthSpec where
   show (DaysOfMonth cf) = show cf
 
+-- | Month field of a cron expression
 data MonthSpec = Months CronField
                  deriving (Eq)
 
 instance Show MonthSpec where
   show (Months cf) = show cf
 
+-- | Day of week field of a cron expression
 data DayOfWeekSpec = DaysOfWeek CronField
                      deriving (Eq)
 
 instance Show DayOfWeekSpec where
   show (DaysOfWeek cf) = show cf
 
-data CronField = Star                  |
-                 SpecificField Int     |
-                 RangeField Int Int    |
-                 ListField [CronField] |
-                 StepField CronField Int
+-- | Individual field of a cron expression.
+data CronField = Star                  | -- ^ Matches anything
+                 SpecificField Int     | -- ^ Matches a specific value (e.g. 1)
+                 RangeField Int Int    | -- ^ Matches a range of values (e.g. 1-3)
+                 ListField [CronField] | -- ^ Matches a list of expressions. Recursive lists are invalid and the parser will never produce them.
+                 StepField CronField Int -- ^ Matches a stepped expression, e.g. (*/2). Recursive steps or stepped lists are invalid and the parser will never produce them.
                  deriving (Eq)
 
 instance Show CronField where
@@ -81,22 +117,28 @@ instance Show CronField where
   show (StepField f step) = show f ++ "/" ++ show step
 
 
+-- | Shorthand for every January 1st at midnight. Parsed with @yearly
 yearly :: CronSchedule
 yearly = monthly { month = Months $ SpecificField 1 }
 
+-- | Shorthand for every 1st of the month at midnight. Parsed with @monthly
 monthly :: CronSchedule
 monthly = hourly { dayOfMonth = DaysOfMonth $ SpecificField 1 }
 
+-- | Shorthand for every sunday at midnight. Parsed with @weekly
 weekly :: CronSchedule
 weekly = daily { dayOfWeek = DaysOfWeek $ SpecificField 0,
                  dayOfMonth = DaysOfMonth $ SpecificField 0 }
 
+-- | Shorthand for every day at midnight. Parsed with @daily
 daily :: CronSchedule
 daily = hourly { hour = Hours $ SpecificField 0 }
 
+-- | Shorthand for every hour on the hour. Parsed with @hourly
 hourly :: CronSchedule
 hourly = everyMinute { minute = Minutes $ SpecificField 0 }
 
+-- | Shorthand for an expression that always matches. Parsed with * * * * *
 everyMinute :: CronSchedule
 everyMinute = CronSchedule { minute     = Minutes Star,
                              hour       = Hours Star,
@@ -104,7 +146,12 @@ everyMinute = CronSchedule { minute     = Minutes Star,
                              month      = Months Star,
                              dayOfWeek  = DaysOfWeek Star}
 
-scheduleMatches :: CronSchedule -> UTCTime -> Bool
+-- | Determines if the given time is matched by the given schedule. A
+-- periodical task would use this to determine if an action needs to be
+-- performed at the current time or not.
+scheduleMatches :: CronSchedule
+                   -> UTCTime
+                   -> Bool
 scheduleMatches CronSchedule { minute     = Minutes mins,
                                hour       = Hours hrs,
                                dayOfMonth = DaysOfMonth doms,
@@ -123,21 +170,30 @@ scheduleMatches CronSchedule { minute     = Minutes mins,
                                     (dow, CDayOfWeek, dows)]
         validate (x, y, z) = matchField x y z
 
-matchField :: Int -> CronUnit -> CronField -> Bool
+matchField :: Int
+              -> CronUnit
+              -> CronField
+              -> Bool
 matchField _ _ Star                      = True
 matchField x _ (SpecificField y)         = x == y
 matchField x _ (RangeField y y')         = x >= y && x <= y'
 matchField x unit (ListField fs)         = any (matchField x unit) fs
 matchField x unit (StepField f step) = elem x $ expandDivided f step unit
 
-expandDivided :: CronField -> Int -> CronUnit -> [Int]
+expandDivided :: CronField
+                 -> Int
+                 -> CronUnit
+                 -> [Int]
 expandDivided Star step unit                      = fillTo 0 max' step
   where max' = maxValue unit
 expandDivided (RangeField start finish) step unit = fillTo start finish' step
   where finish' = minimum [finish, maxValue unit]
 expandDivided _ _ _                               = [] -- invalid
 
-fillTo :: Int -> Int -> Int -> [Int]
+fillTo :: Int
+          -> Int
+          -> Int
+          -> [Int]
 fillTo start finish step
   | step <= 0      = []
   | finish < start = []

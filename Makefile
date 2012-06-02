@@ -20,6 +20,9 @@ test: configure_tests
 configure_tests:
 	$(CABAL) configure --enable-tests
 
+docs:
+	$(CABAL) haddock
+
 clean:
 	$(CABAL) clean
 	rm -f **/*.{o,hi} **/**/*.{o,hi}

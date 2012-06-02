@@ -7,6 +7,9 @@ import           Control.Applicative  (pure, (*>), (<$>), (<*), (<*>), (<|>))
 import           Data.Attoparsec.Text (Parser)
 import qualified Data.Attoparsec.Text as A
 
+-- | Attoparsec Parser for a cron schedule. Complies fully with the standard
+-- cron format.  Also includes the following shorthand formats which cron also
+-- supports: @yearly, @monthly, @weekly, @daily, @hourly
 cronSchedule :: Parser CronSchedule
 cronSchedule = yearlyP  <|>
                monthlyP <|>
@@ -16,7 +19,6 @@ cronSchedule = yearlyP  <|>
                classicP
 
 ---- Internals
-
 classicP :: Parser CronSchedule
 classicP = CronSchedule <$> (minutesP    <* space)
                         <*> (hoursP      <* space)
