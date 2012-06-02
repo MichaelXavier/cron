@@ -1,18 +1,16 @@
 module System.CronSpec (spec) where
--- TODO: this *should* just work with {-# OPTIONS_GHC -F -pgmF hspec-discover #-}
 
 import Data.Time.Clock
 import Data.Time.Calendar
 import Data.Time.LocalTime
 import Test.Hspec.Monadic
 import Test.Hspec.HUnit ()
-
 import Test.HUnit.Base ((~?=))
 
 import System.Cron
 
 spec :: Spec
-spec = sequence_ [ describeScheduleMatches, describeShow ]
+spec = sequence_ [describeScheduleMatches, describeShow]
 
 ---- Specs
 describeScheduleMatches :: Spec
@@ -86,7 +84,7 @@ describeShow = describe "show" $ do
 
 stars :: CronSchedule
 stars = CronSchedule (Minutes Star)
-                      (Hours Star)
-                      (DaysOfMonth Star)
-                      (Months Star)
-                      (DaysOfWeek Star)
+                     (Hours Star)
+                     (DaysOfMonth Star)
+                     (Months Star)
+                     (DaysOfWeek Star)

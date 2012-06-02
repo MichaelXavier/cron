@@ -28,25 +28,25 @@ classicP = CronSchedule <$> (minutesP    <* space)
                         <*> (hoursP      <* space)
                         <*> (dayOfMonthP <* space)
                         <*> (monthP      <* space)
-                        <*> dayOfWeekP
+                        <*> (dayOfWeekP  <* A.endOfInput)
   where space = A.char ' '
 
 cronFieldP :: Parser CronField
-cronFieldP = starP     <|>
+cronFieldP = dividedP  <|>
              rangeP    <|>
              listP     <|>
-             dividedP  <|>
+             starP     <|>
              specificP
   where starP         = A.char '*' *> pure Star
         rangeP        = do start <- parseInt
                            A.char '-'
                            end   <- parseInt
                            if start <= end
-                             then return $ Range start end
+                             then return $ RangeField start end
                              else rangeInvalid
         rangeInvalid  = fail "start of range must be less than or equal to end"
         -- Must avoid infinitely recursive parsers
-        listP         = ListField <$> A.sepBy1 listableP (A.char ',')
+        listP         = reduceList <$> A.sepBy1 listableP (A.char ',')
         listableP     = starP    <|>
                         rangeP   <|>
                         dividedP <|>
@@ -95,3 +95,8 @@ dayOfWeekP = DaysOfWeek <$> cronFieldP
 
 parseInt :: Parser Int
 parseInt = fromIntegral <$> A.decimal
+
+reduceList :: [CronField] -> CronField
+reduceList []  = ListField [] -- this should not happen
+reduceList [x] = x
+reduceList xs  = ListField xs
