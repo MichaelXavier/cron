@@ -1,0 +1,44 @@
+Name:                cron
+Version:             0.0.0
+Description:         Cron datatypes and Attoparsec parser
+Category:            Text, Parsing
+License:             MIT
+License-file:        LICENSE
+Author:              Michael Xavier <michael@michaelxavier.net>
+Copyright:           Copyright: (c) 2012 Michael Xavier
+Maintainer:          Michael Xavier <michael@michaelxavier.net>
+Build-Type:          Simple
+Stability:      experimental
+Tested-With:         GHC == 7.4.1
+Cabal-Version:       >= 1.6
+Extra-Source-Files:
+  README.md
+  LICENSE
+  test/Spec.hs
+  test/System/Cron/ParserSpec.hs
+  test/System/CronSpec.hs
+Homepage:           http://github.com/michaelxavier/Cron
+Bug-Reports:        http://github.com/michaelxavier/Cron/issues
+
+library
+ Exposed-modules: System.Cron,
+                  System.Cron.Parser
+ Ghc-Options:     -O2 -Wall
+ Hs-source-dirs:  src
+ build-depends:   base            >= 4        && < 5,
+                  attoparsec      == 0.10.*,
+                  text            == 0.11.*,
+                  time            >= 1.4
+
+test-suite spec
+  Type:           exitcode-stdio-1.0
+  Main-Is:        Spec.hs
+  Hs-Source-Dirs: src, test
+  Build-Depends:  base >= 4 && < 5,
+                  hspec == 1.1.*,
+                  hspec-discover == 0.*,
+                  HUnit == 1.*
+
+source-repository head
+  Type:     git
+  Location: https://github.com/michaelxavier/Cron

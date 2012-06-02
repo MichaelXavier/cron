@@ -7,7 +7,7 @@ all: build
 build: configure src/**/*.hs
 	$(EXPORTS) $(CABAL) build
 	
-configure: Cron.cabal install_dependencies
+configure: cron.cabal install_dependencies
 	$(CABAL) configure $(CONFIG_OPTS)
 
 install_dependencies:
