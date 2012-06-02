@@ -31,11 +31,11 @@ data CronSchedule = CronSchedule { minute :: MinuteSpec,
 
 instance Show CronSchedule where
   show cs = "CronSchedule " ++ parts
-    where parts = intercalate " " [show $ minute cs,
-                                   show $ hour cs,
-                                   show $ dayOfMonth cs,
-                                   show $ month cs,
-                                   show $ dayOfWeek cs]
+    where parts = unwords [show $ minute cs,
+                           show $ hour cs,
+                           show $ dayOfMonth cs,
+                           show $ month cs,
+                           show $ dayOfWeek cs]
 
 data MinuteSpec = Minutes CronField
                   deriving (Eq)

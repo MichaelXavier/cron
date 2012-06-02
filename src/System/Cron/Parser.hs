@@ -38,7 +38,7 @@ cronFieldP = steppedP  <|>
              specificP
   where starP         = A.char '*' *> pure Star
         rangeP        = do start <- parseInt
-                           A.char '-'
+                           _     <- A.char '-'
                            end   <- parseInt
                            if start <= end
                              then return $ RangeField start end
@@ -93,7 +93,7 @@ dayOfWeekP :: Parser DayOfWeekSpec
 dayOfWeekP = DaysOfWeek <$> cronFieldP
 
 parseInt :: Parser Int
-parseInt = fromIntegral <$> A.decimal
+parseInt = A.decimal
 
 reduceList :: [CronField] -> CronField
 reduceList []  = ListField [] -- this should not happen
