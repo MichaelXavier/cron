@@ -1,6 +1,7 @@
 Name:                cron
-Version:             0.0.0
+Version:             0.0.1
 Description:         Cron datatypes and Attoparsec parser
+Synopsis:            Cron datatypes and Attoparsec parser
 Category:            Text, Parsing
 License:             MIT
 License-file:        LICENSE
