@@ -9,11 +9,13 @@ Maintainer:          michael@michaelxavier.net
 Build-Type:          Simple
 Cabal-Version:       >= 1.6
 extra-source-files:  README.md
+homepage:           http://github.com/michaelxavier/Cron
 
 library
  Exposed-modules: System.Cron,
                   System.Cron.Parser
  Ghc-Options:     -Wall
+ Hs-source-dirs:  src
  build-depends:   base            >= 4        && < 5,
                   attoparsec      == 0.10.*,
                   text            == 0.11.*,
@@ -25,4 +27,5 @@ test-suite spec
   hs-source-dirs: src, test
   build-depends:  base >= 4 && < 5,
                   hspec == 1.1.*,
-                  hspec-discover == 0.*
+                  hspec-discover == 0.*,
+                  HUnit == 1.*

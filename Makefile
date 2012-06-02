@@ -3,7 +3,7 @@ CONFIG_OPTS=
 
 all: build
 
-build: configure Cron.hs
+build: configure src/*.hs src/**/*.hs
 	$(CABAL) build
 	
 configure: Cron.cabal install_dependencies
@@ -11,6 +11,13 @@ configure: Cron.cabal install_dependencies
 
 install_dependencies:
 	$(CABAL) install --only-dependencies
+
+test: configure_tests
+	$(CABAL) build
+	$(CABAL) test
+
+configure_tests:
+	$(CABAL) configure --enable-tests
 
 clean:
 	$(CABAL) clean
