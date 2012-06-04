@@ -2,16 +2,17 @@
 module System.Cron.ParserSpec (spec) where
 -- TODO: this *should* just work with {-# OPTIONS_GHC -F -pgmF hspec-discover #-}
 
-import Data.Attoparsec.Text (parseOnly)
+import Data.Attoparsec.Text (parseOnly, Parser)
+import Data.Text (Text)
 import Test.Hspec.Monadic
 import Test.Hspec.HUnit ()
-import Test.HUnit.Base ((~?=))
+import Test.HUnit.Base ((~?=), Test)
 
 import System.Cron
 import System.Cron.Parser
 
 spec :: Spec
-spec = sequence_ [describeCronSchedule]
+spec = sequence_ [describeCronSchedule, describeCrontab, describeCrontabEntry]
 
 describeCronSchedule :: Spec
 describeCronSchedule = describe "cronSchedule" $ do
@@ -76,11 +77,88 @@ describeCronSchedule = describe "cronSchedule" $ do
   it "parses steps at the last field" $
     assertSuccessfulParse "* * * * */4"
                            stars { dayOfWeek  = DaysOfWeek (StepField Star 4) }
-  where assertSuccessfulParse txt expected = doParse txt ~?= Right expected
-        assertFailedParse txt = isLeft (doParse txt) ~?= True
-        isLeft (Left _)       = True
-        isLeft _              = False
-        doParse = parseOnly cronSchedule
+  where assertSuccessfulParse = assertParse cronSchedule
+        assertFailedParse = assertNoParse cronSchedule 
+
+describeCrontab :: Spec
+describeCrontab = describe "crontab" $ do
+  it "parses an empty input" $
+    assertSuccessfulParse ""
+                          (Crontab [])
+
+  it "parses whitespace" $
+    assertSuccessfulParse "        "
+                          (Crontab [])
+
+  it "parses a single line" $
+    assertSuccessfulParse "        "
+                          (Crontab [])
+
+  it "ignores comments" $
+    assertSuccessfulParse "# comment"
+                          (Crontab [])
+
+  it "ignores comments with leading whitespace" $
+    assertSuccessfulParse "    # comment"
+                          (Crontab [])
+
+  it "parses comments interspersed with actual commands" $
+    pending
+
+  it "parses environment variables and commands" $
+    pending
+  where assertSuccessfulParse = assertParse crontab
+
+describeCrontabEntry :: Spec
+describeCrontabEntry = describe "crontabEntry" $ do
+  it "parses an environment variable assignment" $ 
+    assertSuccessfulParse "FOO=BAR"
+                          envSet
+
+  it "pparses an environment variable with whitespace at the front" $ 
+    assertSuccessfulParse "  FOO=BAR"
+                          envSet
+
+  it "pparses an environment variable with whitespace in the middle" $ 
+    assertSuccessfulParse "  FOO =   BAR"
+                          envSet
+
+  it "parses a command" $ 
+    assertSuccessfulParse "* * * * * do stuff"
+                          entry
+
+  it "parses a command with any amount of whitespace inbetween" $ 
+    assertSuccessfulParse "* * * * *      do stuff"
+                          entry
+
+  it "pparses a command with whitespace at the front" $ 
+    assertSuccessfulParse "  * * * * *      do stuff"
+                          entry
+  where assertSuccessfulParse = assertParse crontabEntry
+
+assertParse :: (Eq a, Show a)
+               => Parser a
+               -> Text
+               -> a
+               -> Test
+assertParse parser txt expected = parsed ~?= Right expected
+  where parsed = parseOnly parser txt
+
+--assertNoParse :: Parser a -> Text -> b
+assertNoParse :: (Eq a, Show a)
+                 => Parser a
+                 -> Text
+                 -> Test
+assertNoParse parser txt = isLeft parsed ~?= True
+  where isLeft (Left _) = True
+        isLeft _        = False
+        parsed          = parseOnly parser txt
+
+envSet :: CrontabEntry
+envSet = EnvVariable "FOO" "BAR"
+
+entry :: CrontabEntry
+entry = CommandEntry stars "do stuff"
 
 stars :: CronSchedule
 stars = CronSchedule (Minutes Star)

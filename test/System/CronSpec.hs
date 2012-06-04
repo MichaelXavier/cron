@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module System.CronSpec (spec) where
 
 import Data.Time.Clock
@@ -10,7 +11,10 @@ import Test.HUnit.Base ((~?=))
 import System.Cron
 
 spec :: Spec
-spec = sequence_ [describeScheduleMatches, describeShow]
+spec = sequence_ [describeScheduleMatches,
+                  describeCronScheduleShow,
+                  describeCrontabEntryShow,
+                  describeCrontabShow ]
 
 ---- Specs
 describeScheduleMatches :: Spec
@@ -58,8 +62,8 @@ describeScheduleMatches = describe "ScheduleMatches" $ do
   where day m d h mn = UTCTime (fromGregorian 2012 m d) (diffTime h mn)
         diffTime h mn = timeOfDayToTime $ TimeOfDay h mn 0
 
-describeShow :: Spec
-describeShow = describe "show" $ do
+describeCronScheduleShow :: Spec
+describeCronScheduleShow = describe "CronSchedule show" $ do
   it "formats stars" $
     show stars ~?=
          "CronSchedule * * * * *"
@@ -81,6 +85,26 @@ describeShow = describe "show" $ do
   it "formats steps" $
     show stars { dayOfMonth = DaysOfMonth (StepField (ListField [SpecificField 3, SpecificField 5]) 2)} ~?=
          "CronSchedule * * 3,5/2 * *"
+
+describeCrontabShow :: Spec
+describeCrontabShow = describe "Crontab Show" $ do
+  it "prints nothing for an empty crontab" $
+    show (Crontab []) ~?= ""
+
+describeCrontabEntryShow :: Spec
+describeCrontabEntryShow = describe "CrontabEntry Show" $ do
+  it "formats environment variable sets" $
+    show envSet ~?= "FOO=BAR"
+
+  it "formats command entries" $
+    show entry ~?= "* * * * * do stuff"
+
+
+envSet :: CrontabEntry
+envSet = EnvVariable "FOO" "BAR"
+
+entry :: CrontabEntry
+entry = CommandEntry stars "do stuff"
 
 stars :: CronSchedule
 stars = CronSchedule (Minutes Star)

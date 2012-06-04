@@ -20,13 +20,17 @@
 -- >   print $ parseOnly cronSchedule "*/2 * 3 * 4,5,6"
 -- 
 --------------------------------------------------------------------
-module System.Cron.Parser (cronSchedule) where
+module System.Cron.Parser (cronSchedule,
+                           crontab,
+                           crontabEntry) where
 
 import           System.Cron
 
 import           Control.Applicative  (pure, (*>), (<$>), (<*), (<*>), (<|>))
+import           Data.Char (isSpace)
 import           Data.Attoparsec.Text (Parser)
 import qualified Data.Attoparsec.Text as A
+import qualified Data.Attoparsec.Combinator as AC
 
 -- | Attoparsec Parser for a cron schedule. Complies fully with the standard
 -- cron format.  Also includes the following shorthand formats which cron also
@@ -38,6 +42,25 @@ cronSchedule = yearlyP  <|>
                dailyP   <|>
                hourlyP  <|>
                classicP
+
+crontab :: Parser Crontab
+crontab = Crontab <$> A.sepBy lineP (A.char '\n')
+  where lineP = A.skipMany commentP *> crontabEntry
+        commentP = A.skipSpace *> A.char '#' *> A.takeTill (== '\n')
+
+crontabEntry :: Parser CrontabEntry
+crontabEntry = A.skipSpace *> parser
+  where parser = envVariableP <|>
+                 commandEntryP
+        envVariableP = do var <- A.takeWhile1 (A.notInClass " =")
+                          A.skipSpace
+                          _   <- A.char '='
+                          A.skipSpace
+                          val <- A.takeWhile1 $ not . isSpace
+                          A.skipSpace
+                          return $ EnvVariable var val
+        commandEntryP = CommandEntry <$> cronSchedule
+                                     <*> (A.skipSpace *> A.takeText)
 
 ---- Internals
 classicP :: Parser CronSchedule

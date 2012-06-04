@@ -28,6 +28,8 @@
 -- 
 --------------------------------------------------------------------
 module System.Cron (CronSchedule(..),
+                    Crontab(..),
+                    CrontabEntry(..),
                     MinuteSpec(..),
                     HourSpec(..),
                     MonthSpec(..),
@@ -44,6 +46,7 @@ module System.Cron (CronSchedule(..),
 
 import           Data.List                   (intercalate)
 
+import           Data.Text                   (Text, unpack)
 import           Data.Time.Calendar          (toGregorian)
 import           Data.Time.Calendar.WeekDate (toWeekDate)
 import           Data.Time.Clock             (UTCTime(..))
@@ -59,12 +62,31 @@ data CronSchedule = CronSchedule { minute     :: MinuteSpec,     -- ^ Which minu
                                    deriving (Eq)
 
 instance Show CronSchedule where
-  show cs = "CronSchedule " ++ parts
-    where parts = unwords [show $ minute cs,
-                           show $ hour cs,
-                           show $ dayOfMonth cs,
-                           show $ month cs,
-                           show $ dayOfWeek cs]
+  show cs = "CronSchedule " ++ showRaw cs
+
+showRaw :: CronSchedule
+           -> String
+showRaw cs = unwords [show $ minute cs,
+                      show $ hour cs,
+                      show $ dayOfMonth cs,
+                      show $ month cs,
+                      show $ dayOfWeek cs]
+
+newtype Crontab = Crontab [CrontabEntry]
+                  deriving (Eq)
+
+instance Show Crontab where
+  show (Crontab entries) = intercalate "\n" . map show $ entries
+
+data CrontabEntry = CommandEntry { schedule :: CronSchedule,
+                                   command  :: Text} |
+                    EnvVariable  { varName  :: Text,
+                                   varValue :: Text }
+                    deriving (Eq)
+
+instance Show CrontabEntry where
+  show CommandEntry { schedule = s, command = c} = showRaw s ++ " " ++ unpack c
+  show EnvVariable  { varName = n, varValue = v} = unpack n ++ "=" ++ unpack v
 
 -- | Minutes field of a cron expression
 data MinuteSpec = Minutes CronField
