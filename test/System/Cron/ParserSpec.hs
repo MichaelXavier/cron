@@ -12,7 +12,10 @@ import System.Cron
 import System.Cron.Parser
 
 spec :: Spec
-spec = sequence_ [describeCronSchedule, describeCrontab, describeCrontabEntry]
+spec = sequence_ [describeCronSchedule,
+                  describeCronScheduleLoose,
+                  describeCrontab,
+                  describeCrontabEntry]
 
 describeCronSchedule :: Spec
 describeCronSchedule = describe "cronSchedule" $ do
@@ -79,6 +82,13 @@ describeCronSchedule = describe "cronSchedule" $ do
                            stars { dayOfWeek  = DaysOfWeek (StepField Star 4) }
   where assertSuccessfulParse = assertParse cronSchedule
         assertFailedParse = assertNoParse cronSchedule 
+
+describeCronScheduleLoose :: Spec
+describeCronScheduleLoose = describe "cronScheduleLoose" $ do
+  it "is okay with extaneous input" $
+    assertSuccessfulParse "* * * * * *"
+                          stars
+  where assertSuccessfulParse = assertParse cronScheduleLoose
 
 describeCrontab :: Spec
 describeCrontab = describe "crontab" $ do
