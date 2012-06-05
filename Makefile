@@ -7,6 +7,13 @@ all: build
 build: configure src/**/*.hs
 	$(EXPORTS) $(CABAL) build
 
+install: build
+	cabal install
+
+uninstall:
+	ghc-pkg unregister cron
+
+
 sdist: configure
 	$(CABAL) sdist
 	
@@ -24,7 +31,7 @@ autotest: test
 	while true; do inotifywait -qr -e modify test/ src/; make test; done
 
 configure_tests:
-	$(CABAL) configure --enable-tests
+	$(CABAL) configure --enable-tests $(CONFIG_OPTS)
 
 docs:
 	$(CABAL) haddock
