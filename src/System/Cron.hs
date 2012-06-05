@@ -72,12 +72,15 @@ showRaw cs = unwords [show $ minute cs,
                       show $ month cs,
                       show $ dayOfWeek cs]
 
+-- | Crontab file, omitting comments.
 newtype Crontab = Crontab [CrontabEntry]
                   deriving (Eq)
 
 instance Show Crontab where
   show (Crontab entries) = intercalate "\n" . map show $ entries
 
+-- | Essentially a line in a crontab file. It is either a schedule with a
+-- command after it or setting an environment variable (e.g. FOO=BAR)
 data CrontabEntry = CommandEntry { schedule :: CronSchedule,
                                    command  :: Text} |
                     EnvVariable  { varName  :: Text,

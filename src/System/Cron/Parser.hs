@@ -51,11 +51,15 @@ cronScheduleLoose = yearlyP  <|>
                     hourlyP  <|>
                     classicP
 
+-- | Parses a full crontab file, omitting comments and including environment
+-- variable sets (e.g FOO=BAR).
 crontab :: Parser Crontab
 crontab = Crontab <$> A.sepBy lineP (A.char '\n')
   where lineP    = A.skipMany commentP *> crontabEntry
         commentP = A.skipSpace *> A.char '#' *> skipToEOL
 
+-- | Parses an individual crontab line, which is either a scheduled command or
+-- an environmental variable set.
 crontabEntry :: Parser CrontabEntry
 crontabEntry = A.skipSpace *> parser
   where parser = envVariableP <|>
