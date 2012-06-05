@@ -17,6 +17,9 @@ test: configure_tests
 	PATH=$$PATH:cabal-dev/bin $(CABAL) build 
 	$(CABAL) test
 
+autotest: test
+	while true; do inotifywait -qr -e modify test/ src/; make test; done
+
 configure_tests:
 	$(CABAL) configure --enable-tests
 
