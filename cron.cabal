@@ -12,7 +12,7 @@ Description:
   `cronTab`. To parse individual schedules up to full crontab files.
 
 Synopsis:            Cron datatypes and Attoparsec parser
-Category:            Text, Parsing
+Category:            Text, Parsing, System
 License:             MIT
 License-file:        LICENSE
 Author:              Michael Xavier <michael@michaelxavier.net>
