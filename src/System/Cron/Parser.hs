@@ -35,10 +35,14 @@ import           Data.Text (Text)
 
 -- | Attoparsec Parser for a cron schedule. Complies fully with the standard
 -- cron format.  Also includes the following shorthand formats which cron also
--- supports: \@yearly, \@monthly, \@weekly, \@daily, \@hourly
+-- supports: \@yearly, \@monthly, \@weekly, \@daily, \@hourly. Note that this
+-- parser will fail if there is extraneous input. This is to prevent things
+-- like extra fields. If you want a more lax parser, use 'cronScheduleLoose',
+-- which is fine with extra input.
 cronSchedule :: Parser CronSchedule
 cronSchedule = cronScheduleLoose <* A.endOfInput
 
+-- | Same as 'cronSchedule' but does not fail on extraneous input.
 cronScheduleLoose :: Parser CronSchedule
 cronScheduleLoose = yearlyP  <|>
                     monthlyP <|>
