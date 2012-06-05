@@ -103,10 +103,9 @@ describeCrontab = describe "crontab" $ do
                           (Crontab [])
 
   it "parses comments interspersed with actual commands" $
-    pending
+    assertSuccessfulParse "#comment here\nFOO=BAR\n  #another\n* * * * * do stuff"
+                          (Crontab [envSet, entry])
 
-  it "parses environment variables and commands" $
-    pending
   where assertSuccessfulParse = assertParse crontab
 
 describeCrontabEntry :: Spec

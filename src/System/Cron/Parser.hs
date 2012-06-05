@@ -21,6 +21,7 @@
 -- 
 --------------------------------------------------------------------
 module System.Cron.Parser (cronSchedule,
+                           cronScheduleLoose,
                            crontab,
                            crontabEntry) where
 
@@ -30,23 +31,26 @@ import           Control.Applicative  (pure, (*>), (<$>), (<*), (<*>), (<|>))
 import           Data.Char (isSpace)
 import           Data.Attoparsec.Text (Parser)
 import qualified Data.Attoparsec.Text as A
-import qualified Data.Attoparsec.Combinator as AC
+import           Data.Text (Text)
 
 -- | Attoparsec Parser for a cron schedule. Complies fully with the standard
 -- cron format.  Also includes the following shorthand formats which cron also
 -- supports: \@yearly, \@monthly, \@weekly, \@daily, \@hourly
 cronSchedule :: Parser CronSchedule
-cronSchedule = yearlyP  <|>
-               monthlyP <|>
-               weeklyP  <|>
-               dailyP   <|>
-               hourlyP  <|>
-               classicP
+cronSchedule = cronScheduleLoose <* A.endOfInput
+
+cronScheduleLoose :: Parser CronSchedule
+cronScheduleLoose = yearlyP  <|>
+                    monthlyP <|>
+                    weeklyP  <|>
+                    dailyP   <|>
+                    hourlyP  <|>
+                    classicP
 
 crontab :: Parser Crontab
 crontab = Crontab <$> A.sepBy lineP (A.char '\n')
-  where lineP = A.skipMany commentP *> crontabEntry
-        commentP = A.skipSpace *> A.char '#' *> A.takeTill (== '\n')
+  where lineP    = A.skipMany commentP *> crontabEntry
+        commentP = A.skipSpace *> A.char '#' *> skipToEOL
 
 crontabEntry :: Parser CrontabEntry
 crontabEntry = A.skipSpace *> parser
@@ -57,18 +61,24 @@ crontabEntry = A.skipSpace *> parser
                           _   <- A.char '='
                           A.skipSpace
                           val <- A.takeWhile1 $ not . isSpace
-                          A.skipSpace
+                          A.skipWhile (\c -> c == ' ' || c == '\t')
                           return $ EnvVariable var val
-        commandEntryP = CommandEntry <$> cronSchedule
-                                     <*> (A.skipSpace *> A.takeText)
+        commandEntryP = CommandEntry <$> cronScheduleLoose
+                                     <*> (A.skipSpace *> takeToEOL)
 
 ---- Internals
+takeToEOL :: Parser Text
+takeToEOL = A.takeTill (== '\n') -- <* A.skip (== '\n')
+
+skipToEOL :: Parser ()
+skipToEOL = A.skipWhile (/= '\n')
+
 classicP :: Parser CronSchedule
 classicP = CronSchedule <$> (minutesP    <* space)
                         <*> (hoursP      <* space)
                         <*> (dayOfMonthP <* space)
                         <*> (monthP      <* space)
-                        <*> (dayOfWeekP  <* A.endOfInput)
+                        <*> dayOfWeekP
   where space = A.char ' '
 
 cronFieldP :: Parser CronField
