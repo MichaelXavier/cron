@@ -1,5 +1,6 @@
 cron
 ====
+[![Build Status](https://secure.travis-ci.org/MichaelXavier/cron.png)](http://travis-ci.org/MichaelXavier/cron)
 
 Cron data structure and Attoparsec parser for Haskell. The idea is to embed it
 in larger systems which want to roll their own scheduled tasks in a format that
