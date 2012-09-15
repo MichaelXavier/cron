@@ -5,7 +5,7 @@ import Data.Time.Clock
 import Data.Time.Calendar
 import Data.Time.LocalTime
 import Test.Hspec
-import Test.HUnit.Base ((~?=))
+import Test.HUnit.Base ((@?=))
 
 import System.Cron
 
@@ -64,39 +64,39 @@ describeScheduleMatches = describe "ScheduleMatches" $ do
 describeCronScheduleShow :: Spec
 describeCronScheduleShow = describe "CronSchedule show" $ do
   it "formats stars" $
-    show stars ~?=
+    show stars @?=
          "CronSchedule * * * * *"
 
   it "formats specific numbers" $
-    show stars { dayOfWeek = DaysOfWeek (SpecificField 3)} ~?=
+    show stars { dayOfWeek = DaysOfWeek (SpecificField 3)} @?=
          "CronSchedule * * * * 3"
 
   it "formats lists" $
     show stars { minute = Minutes (ListField [SpecificField 1,
                                    SpecificField 2,
-                                   SpecificField 3])} ~?=
+                                   SpecificField 3])} @?=
          "CronSchedule 1,2,3 * * * *"
 
   it "formats ranges" $
-    show stars { hour = Hours (RangeField 7 10)} ~?=
+    show stars { hour = Hours (RangeField 7 10)} @?=
          "CronSchedule * 7-10 * * *"
 
   it "formats steps" $
-    show stars { dayOfMonth = DaysOfMonth (StepField (ListField [SpecificField 3, SpecificField 5]) 2)} ~?=
+    show stars { dayOfMonth = DaysOfMonth (StepField (ListField [SpecificField 3, SpecificField 5]) 2)} @?=
          "CronSchedule * * 3,5/2 * *"
 
 describeCrontabShow :: Spec
 describeCrontabShow = describe "Crontab Show" $ do
   it "prints nothing for an empty crontab" $
-    show (Crontab []) ~?= ""
+    show (Crontab []) @?= ""
 
 describeCrontabEntryShow :: Spec
 describeCrontabEntryShow = describe "CrontabEntry Show" $ do
   it "formats environment variable sets" $
-    show envSet ~?= "FOO=BAR"
+    show envSet @?= "FOO=BAR"
 
   it "formats command entries" $
-    show entry ~?= "* * * * * do stuff"
+    show entry @?= "* * * * * do stuff"
 
 
 envSet :: CrontabEntry

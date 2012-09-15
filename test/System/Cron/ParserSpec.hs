@@ -5,7 +5,7 @@ module System.Cron.ParserSpec (spec) where
 import Data.Attoparsec.Text (parseOnly, Parser)
 import Data.Text (Text)
 import Test.Hspec
-import Test.HUnit.Base ((~?=), Test)
+import Test.HUnit.Base ((@?=), Assertion)
 
 import System.Cron
 import System.Cron.Parser
@@ -148,16 +148,16 @@ assertParse :: (Eq a, Show a)
                => Parser a
                -> Text
                -> a
-               -> Test
-assertParse parser txt expected = parsed ~?= Right expected
+               -> Assertion
+assertParse parser txt expected = parsed @?= Right expected
   where parsed = parseOnly parser txt
 
 --assertNoParse :: Parser a -> Text -> b
 assertNoParse :: (Eq a, Show a)
                  => Parser a
                  -> Text
-                 -> Test
-assertNoParse parser txt = isLeft parsed ~?= True
+                 -> Assertion
+assertNoParse parser txt = isLeft parsed @?= True
   where isLeft (Left _) = True
         isLeft _        = False
         parsed          = parseOnly parser txt
