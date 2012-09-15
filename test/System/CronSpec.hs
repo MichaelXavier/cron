@@ -4,8 +4,7 @@ module System.CronSpec (spec) where
 import Data.Time.Clock
 import Data.Time.Calendar
 import Data.Time.LocalTime
-import Test.Hspec.Monadic
-import Test.Hspec.HUnit ()
+import Test.Hspec
 import Test.HUnit.Base ((~?=))
 
 import System.Cron

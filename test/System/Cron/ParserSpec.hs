@@ -4,8 +4,7 @@ module System.Cron.ParserSpec (spec) where
 
 import Data.Attoparsec.Text (parseOnly, Parser)
 import Data.Text (Text)
-import Test.Hspec.Monadic
-import Test.Hspec.HUnit ()
+import Test.Hspec
 import Test.HUnit.Base ((~?=), Test)
 
 import System.Cron
