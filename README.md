@@ -30,3 +30,7 @@ If you have inotify-tools, run this to run tests continuously.
 To generate docs:
 
     make docs
+
+## Contributors
+
+* [Simon Hengel](https://github.com/sol)
