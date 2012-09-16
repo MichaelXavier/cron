@@ -8,6 +8,7 @@ import Test.Hspec
 
 import System.Cron
 import System.Cron.Parser
+import Test.Hspec.Expectations.Contrib (isLeft)
 
 spec :: Spec
 spec = sequence_ [describeCronSchedule,
@@ -156,10 +157,7 @@ assertNoParse :: (Eq a, Show a)
                  => Parser a
                  -> Text
                  -> Expectation
-assertNoParse parser txt = isLeft parsed `shouldBe` True
-  where isLeft (Left _) = True
-        isLeft _        = False
-        parsed          = parseOnly parser txt
+assertNoParse parser txt = parseOnly parser txt `shouldSatisfy` isLeft
 
 envSet :: CrontabEntry
 envSet = EnvVariable "FOO" "BAR"
