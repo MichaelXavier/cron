@@ -25,6 +25,7 @@ Cabal-Version:       >= 1.8
 Extra-Source-Files:
   README.md
   LICENSE
+  changelog
   test/Spec.hs
   test/System/Cron/ParserSpec.hs
   test/System/CronSpec.hs
