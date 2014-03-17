@@ -57,6 +57,16 @@ describeScheduleMatches = describe "ScheduleMatches" $ do
                             dayOfMonth = DaysOfMonth (SpecificField 3),
                             hour       = Hours (RangeField 10 14) }
                     (day 5 3 13 2)
+  it "matches a monday as 1" $
+    scheduleMatches stars { dayOfWeek  = DaysOfWeek (SpecificField 1) }
+                    (UTCTime (fromGregorian 2014 3 17) 0)
+  it "matches a sunday as 0" $
+    scheduleMatches stars { dayOfWeek  = DaysOfWeek (SpecificField 0) }
+                    (UTCTime (fromGregorian 2014 3 16) 0)
+  it "matches a sunday as 7" $
+    scheduleMatches stars { dayOfWeek  = DaysOfWeek (SpecificField 7) }
+                    (UTCTime (fromGregorian 2014 3 16) 0)
+
   where day m d h mn = UTCTime (fromGregorian 2012 m d) (diffTime h mn)
         diffTime h mn = timeOfDayToTime $ TimeOfDay h mn 0
 
