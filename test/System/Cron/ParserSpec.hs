@@ -79,6 +79,12 @@ describeCronSchedule = describe "cronSchedule" $ do
   it "parses steps at the last field" $
     assertSuccessfulParse "* * * * */4"
                            stars { dayOfWeek  = DaysOfWeek (StepField Star 4) }
+  it "parses a sunday as 7" $
+    assertSuccessfulParse "* * * * 7"
+                           stars { dayOfWeek  = DaysOfWeek (SpecificField 7) }
+  it "parses a sunday as 0" $
+    assertSuccessfulParse "* * * * 0"
+                           stars { dayOfWeek  = DaysOfWeek (SpecificField 0) }
   where assertSuccessfulParse = assertParse cronSchedule
         assertFailedParse = assertNoParse cronSchedule 
 
