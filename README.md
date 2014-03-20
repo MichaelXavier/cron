@@ -34,3 +34,4 @@ To generate docs:
 ## Contributors
 
 * [Simon Hengel](https://github.com/sol)
+* [Alberto Valverde](https://github.com/albertov)

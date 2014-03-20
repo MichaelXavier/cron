@@ -200,6 +200,9 @@ matchField :: Int
               -> CronField
               -> Bool
 matchField _ _ Star                      = True
+matchField x CDayOfWeek (SpecificField y)
+  | x == y || x == 0 && y == 7 || x == 7 && y == 0 = True
+  | otherwise                                      = False
 matchField x _ (SpecificField y)         = x == y
 matchField x _ (RangeField y y')         = x >= y && x <= y'
 matchField x unit (ListField fs)         = any (matchField x unit) fs
