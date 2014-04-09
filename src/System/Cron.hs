@@ -184,7 +184,7 @@ scheduleMatches CronSchedule { minute     = Minutes mins,
                 UTCTime { utctDay = uDay,
                           utctDayTime = uTime } = all id validations
   where (_, mth, dom) = toGregorian uDay
-        (_, _, dow)     = toWeekDate uDay
+        (_, _, dow) = toWeekDate uDay
         TimeOfDay { todHour = hr,
                     todMin  = mn} = timeToTimeOfDay uTime
         validations = map validate [(mn, CMinute, mins),
@@ -230,7 +230,7 @@ data CronUnit = CMinute     |
                 CHour       |
                 CDayOfMonth |
                 CMonth      |
-                CDayOfWeek
+                CDayOfWeek deriving (Show, Eq)
 
 maxValue :: CronUnit -> Int
 maxValue CMinute     = 59

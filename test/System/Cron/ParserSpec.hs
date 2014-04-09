@@ -86,7 +86,7 @@ describeCronSchedule = describe "cronSchedule" $ do
     assertSuccessfulParse "* * * * 0"
                            stars { dayOfWeek  = DaysOfWeek (SpecificField 0) }
   where assertSuccessfulParse = assertParse cronSchedule
-        assertFailedParse = assertNoParse cronSchedule 
+        assertFailedParse = assertNoParse cronSchedule
 
 describeCronScheduleLoose :: Spec
 describeCronScheduleLoose = describe "cronScheduleLoose" $ do
@@ -125,27 +125,27 @@ describeCrontab = describe "crontab" $ do
 
 describeCrontabEntry :: Spec
 describeCrontabEntry = describe "crontabEntry" $ do
-  it "parses an environment variable assignment" $ 
+  it "parses an environment variable assignment" $
     assertSuccessfulParse "FOO=BAR"
                           envSet
 
-  it "pparses an environment variable with whitespace at the front" $ 
+  it "parses an environment variable with whitespace at the front" $
     assertSuccessfulParse "  FOO=BAR"
                           envSet
 
-  it "pparses an environment variable with whitespace in the middle" $ 
+  it "parses an environment variable with whitespace in the middle" $
     assertSuccessfulParse "  FOO =   BAR"
                           envSet
 
-  it "parses a command" $ 
+  it "parses a command" $
     assertSuccessfulParse "* * * * * do stuff"
                           entry
 
-  it "parses a command with any amount of whitespace inbetween" $ 
+  it "parses a command with any amount of whitespace inbetween" $
     assertSuccessfulParse "* * * * *      do stuff"
                           entry
 
-  it "pparses a command with whitespace at the front" $ 
+  it "parses a command with whitespace at the front" $
     assertSuccessfulParse "  * * * * *      do stuff"
                           entry
   where assertSuccessfulParse = assertParse crontabEntry
