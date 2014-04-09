@@ -94,6 +94,24 @@ describeCronScheduleShow = describe "CronSchedule show" $ do
     show stars { dayOfMonth = DaysOfMonth (StepField (ListField [SpecificField 3, SpecificField 5]) 2)} `shouldBe`
          "CronSchedule * * 3,5/2 * *"
 
+  it "formats @yearly" $
+    show yearly `shouldBe` "CronSchedule 0 0 1 1 *"
+
+  it "formats @monthly" $
+    show monthly `shouldBe` "CronSchedule 0 0 1 * *"
+
+  it "formats @weekly" $
+    show weekly `shouldBe` "CronSchedule 0 0 * * 0"
+
+  it "formats @daily" $
+    show daily `shouldBe` "CronSchedule 0 0 * * *"
+
+  it "formats @hourly" $
+    show hourly `shouldBe` "CronSchedule 0 * * * *"
+
+  it "formats everyMinute" $
+    show everyMinute `shouldBe` "CronSchedule * * * * *"
+
 describeCrontabShow :: Spec
 describeCrontabShow = describe "Crontab Show" $ do
   it "prints nothing for an empty crontab" $

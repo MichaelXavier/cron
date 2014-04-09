@@ -10,12 +10,12 @@
 --
 -- Toplevel module for Cron specifying a cron schedule and several convenience
 -- functions for dealing with cron schedules
--- 
+--
 -- > import Control.Concurrent
 -- > import Control.Monad
 -- > import Data.Time.Clock
 -- > import System.Cron
--- > 
+-- >
 -- > main :: IO ()
 -- > main = do
 -- >   forever do
@@ -25,7 +25,7 @@
 -- >     threadDelay 100000
 -- >   where doWork   = putStrLn "Time to work"
 -- >         schedule = hourly
--- 
+--
 --------------------------------------------------------------------
 module System.Cron (CronSchedule(..),
                     Crontab(..),
@@ -142,24 +142,23 @@ instance Show CronField where
   show (StepField f step) = show f ++ "/" ++ show step
 
 
--- | Shorthand for every January 1st at midnight. Parsed with \@yearly
+-- | Shorthand for every January 1st at midnight. Parsed with \@yearly, 0 0 1 1 *
 yearly :: CronSchedule
 yearly = monthly { month = Months $ SpecificField 1 }
 
--- | Shorthand for every 1st of the month at midnight. Parsed with \@monthly
+-- | Shorthand for every 1st of the month at midnight. Parsed with \@monthly, 0 0 1 * *
 monthly :: CronSchedule
-monthly = hourly { dayOfMonth = DaysOfMonth $ SpecificField 1 }
+monthly = daily { dayOfMonth = DaysOfMonth $ SpecificField 1 }
 
--- | Shorthand for every sunday at midnight. Parsed with \@weekly
+-- | Shorthand for every sunday at midnight. Parsed with \@weekly, 0 0 * * 0
 weekly :: CronSchedule
-weekly = daily { dayOfWeek = DaysOfWeek $ SpecificField 0,
-                 dayOfMonth = DaysOfMonth $ SpecificField 0 }
+weekly = daily { dayOfWeek = DaysOfWeek $ SpecificField 0 }
 
--- | Shorthand for every day at midnight. Parsed with \@daily
+-- | Shorthand for every day at midnight. Parsed with \@daily, 0 0 * * *
 daily :: CronSchedule
 daily = hourly { hour = Hours $ SpecificField 0 }
 
--- | Shorthand for every hour on the hour. Parsed with \@hourly
+-- | Shorthand for every hour on the hour. Parsed with \@hourly, 0 * * * *
 hourly :: CronSchedule
 hourly = everyMinute { minute = Minutes $ SpecificField 0 }
 
