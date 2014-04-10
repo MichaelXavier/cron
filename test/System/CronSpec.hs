@@ -1,17 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module System.CronSpec (spec) where
 
-import Control.Applicative
-import Data.Time.Clock
-import Data.Time.Calendar
-import Data.Time.LocalTime
-import Test.Hspec
-import Test.Hspec.QuickCheck
-import Test.QuickCheck
-
-import System.Cron
-
-import Debug.Trace
+import SpecHelper
 
 spec :: Spec
 spec = sequence_ [describeScheduleMatches,
@@ -89,13 +79,13 @@ describeScheduleMatches = describe "ScheduleMatches" $ do
   prop "star matches everything" $ \t ->
     scheduleMatches stars t
 
-  prop "exact time matches" $ arbitraryTimeFields $ \y m d h mn ->
-    let sched = CronSchedule (Minutes $ SpecificField mn)
+  prop "exact time matches" $ \t ->
+    let (_, m, d, h, mn) = timeComponents t
+        sched = CronSchedule (Minutes $ SpecificField mn)
                              (Hours $ SpecificField h)
                              (DaysOfMonth $ SpecificField d)
                              (Months $ SpecificField m)
                              (DaysOfWeek Star)
-        t     = day' y m d h mn
     in scheduleMatches sched t
 
   prop "any time with the same minute as n * * * * matches" $ arbitraryTimeFields $ \y m d h mn ->
@@ -118,9 +108,8 @@ describeScheduleMatches = describe "ScheduleMatches" $ do
         t     = day' y m d h mn
     in not $ scheduleMatches sched t
 
-  prop "any time with the same day as * * n * * matches" $ \t@(UTCTime dy dt) ->
-    let (_, m, d) = toGregorian dy
-        (h, mn)   = hoursMins dt
+  prop "any time with the same day as * * n * * matches" $ \t ->
+    let (_, m, d, h, mn) = timeComponents t
         sched = CronSchedule (Minutes $ SpecificField mn)
                              (Hours $ SpecificField h)
                              (DaysOfMonth $ SpecificField d)
@@ -223,9 +212,8 @@ stars = CronSchedule (Minutes Star)
                      (Months Star)
                      (DaysOfWeek Star)
 
-instance Arbitrary UTCTime where
-  arbitrary = do
-    d <- ModifiedJulianDay . fromInteger . getPositive <$> arbitrary
-    t <- fromInteger . getPositive <$> arbitrary
-    return $ UTCTime d t
-
+timeComponents :: UTCTime -> (Integer, Int, Int, Int, Int)
+timeComponents (UTCTime dy dt) = (y, m, d, h, mn)
+  where
+    (y, m, d) = toGregorian dy
+    (h, mn)   = hoursMins dt
