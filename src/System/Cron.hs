@@ -42,7 +42,8 @@ module System.Cron (CronSchedule(..),
                     weekly,
                     hourly,
                     everyMinute,
-                    scheduleMatches) where
+                    scheduleMatches,
+                    nextMatch) where
 
 import           Data.List                   (intercalate)
 
@@ -193,6 +194,9 @@ scheduleMatches CronSchedule { minute     = Minutes mins,
                                     (mth, CMonth, months),
                                     (dow, CDayOfWeek, dows)]
         validate (x, y, z) = matchField x y z
+
+nextMatch :: CronSchedule -> UTCTime -> Maybe UTCTime
+nextMatch = undefined
 
 matchField :: Int
               -> CronUnit

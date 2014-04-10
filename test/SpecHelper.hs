@@ -2,7 +2,9 @@
 module SpecHelper (module X) where
 
 import Control.Applicative as X
+import Control.Lens as X hiding (elements)
 import Data.DeriveTH
+import Data.Time.Lens as X
 import Data.Time.Clock as X
 import Data.Time.Calendar as X
 import Data.Time.LocalTime as X

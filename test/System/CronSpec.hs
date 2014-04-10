@@ -5,6 +5,7 @@ import SpecHelper
 
 spec :: Spec
 spec = sequence_ [describeScheduleMatches,
+                  describeNextMatch,
                   describeCronScheduleShow,
                   describeCrontabEntryShow,
                   describeCrontabShow ]
@@ -125,6 +126,20 @@ describeScheduleMatches = describe "ScheduleMatches" $ do
   where day = day' 2012
         day' y m d h mn = UTCTime (fromGregorian y m d) (diffTime h mn)
         diffTime h mn = timeOfDayToTime $ TimeOfDay h mn 1
+
+describeNextMatch :: Spec
+describeNextMatch = describe "nextMatch" $ do
+  prop "predicts the same time next minute for every minute" $ \t ->
+    nextMatch everyMinute t == Just (t & minutes +~ 1)
+
+  prop "predicts the same time next day for daily" $ \t ->
+    nextMatch daily t == Just (t & days +~ 1)
+
+  prop "predicts the same time next week for weekly" $ \t ->
+    nextMatch weekly t == Just (t & days +~ 7)
+
+  prop "predicts the same time next month for monthly" $ \t ->
+    nextMatch monthly t == Just (t & months +~ 1)
 
 arbitraryTimeFields f y m d h mn = f (getPositive y)
                                      (min 12 $ getPositive m)

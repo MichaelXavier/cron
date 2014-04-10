@@ -51,6 +51,8 @@ test-suite spec
                   hspec == 1.3.*,
                   QuickCheck,
                   derive,
+                  lens-datetime,
+                  lens,
                   hspec-expectations,
                   attoparsec      >= 0.10,
                   text            >= 0.11 && < 2,
