@@ -17,21 +17,20 @@ describeScheduleMatches = describe "ScheduleMatches" $ do
     scheduleMatches stars (day 5 25 1 2)
 
   it "matches a specific field" $
-    scheduleMatches stars { hour = Hours (SpecificField 1)}
+    scheduleMatches stars { hour = Hours (Field $ SpecificField 1)}
                     (day 5 25 1 2)
 
   it "matches a range" $
-    scheduleMatches stars { dayOfMonth = DaysOfMonth (RangeField 3 5)}
+    scheduleMatches stars { dayOfMonth = DaysOfMonth (Field $ RangeField 3 5)}
                     (day 5 4 1 2)
 
   it "does not match invalid range" $
-    not $ scheduleMatches stars { dayOfMonth = DaysOfMonth (RangeField 5 3)}
+    not $ scheduleMatches stars { dayOfMonth = DaysOfMonth (Field $ RangeField 5 3)}
                           (day 5 4 1 2)
 
   it "matches a list" $
-    scheduleMatches stars { month = Months (ListField [SpecificField 1,
-                                                       SpecificField 2,
-                                                       SpecificField 3])}
+    let list = SpecificField 1 :| [SpecificField 2, SpecificField 3]
+    in scheduleMatches stars { month = Months (ListField list)}
                     (day 2 3 1 2)
 
   it "matches a step field" $
@@ -52,20 +51,20 @@ describeScheduleMatches = describe "ScheduleMatches" $ do
 
   it "matches multiple fields at once" $
     scheduleMatches stars { minute     = Minutes (StepField Star 2),
-                            dayOfMonth = DaysOfMonth (SpecificField 3),
-                            hour       = Hours (RangeField 10 14) }
+                            dayOfMonth = DaysOfMonth (Field $ SpecificField 3),
+                            hour       = Hours (Field $ RangeField 10 14) }
                     (day 5 3 13 2)
 
   it "matches a monday as 1" $
-    scheduleMatches stars { dayOfWeek  = DaysOfWeek (SpecificField 1) }
+    scheduleMatches stars { dayOfWeek  = DaysOfWeek (Field $ SpecificField 1) }
                     (UTCTime (fromGregorian 2014 3 17) 0)
 
   it "matches a sunday as 0" $
-    scheduleMatches stars { dayOfWeek  = DaysOfWeek (SpecificField 0) }
+    scheduleMatches stars { dayOfWeek  = DaysOfWeek (Field $ SpecificField 0) }
                     (UTCTime (fromGregorian 2014 3 16) 0)
 
   it "matches a sunday as 7" $
-    scheduleMatches stars { dayOfWeek  = DaysOfWeek (SpecificField 7) }
+    scheduleMatches stars { dayOfWeek  = DaysOfWeek (Field $ SpecificField 7) }
                     (UTCTime (fromGregorian 2014 3 16) 0)
 
   it "matches weekly on a sunday at 0:00" $
@@ -82,44 +81,44 @@ describeScheduleMatches = describe "ScheduleMatches" $ do
 
   prop "exact time matches" $ \t ->
     let (_, m, d, h, mn) = timeComponents t
-        sched = CronSchedule (Minutes $ SpecificField mn)
-                             (Hours $ SpecificField h)
-                             (DaysOfMonth $ SpecificField d)
-                             (Months $ SpecificField m)
-                             (DaysOfWeek Star)
+        sched = CronSchedule (Minutes $ Field $ SpecificField mn)
+                             (Hours $ Field $ SpecificField h)
+                             (DaysOfMonth $ Field $ SpecificField d)
+                             (Months $ Field $ SpecificField m)
+                             (DaysOfWeek $ Field Star)
     in scheduleMatches sched t
 
   prop "any time with the same minute as n * * * * matches" $ arbitraryTimeFields $ \y m d h mn ->
-    let sched = stars { minute = Minutes $ SpecificField mn }
+    let sched = stars { minute = Minutes $ Field $ SpecificField mn }
         t     = day' y m d h mn
     in scheduleMatches sched t
 
   prop "any time with the diff minute as n * * * * does not match" $ arbitraryTimeFields $ \y m d h mn ->
-    let sched = stars { minute = Minutes $ SpecificField $ stepMax 59 mn }
+    let sched = stars { minute = Minutes $ Field $ SpecificField $ stepMax 59 mn }
         t     = day' y m d h mn
     in not $ scheduleMatches sched t
 
   prop "any time with the same hour as * n * * * matches" $ arbitraryTimeFields $ \y m d h mn ->
-    let sched = stars { hour = Hours $ SpecificField h }
+    let sched = stars { hour = Hours $ Field $ SpecificField h }
         t     = day' y m d h mn
     in scheduleMatches sched t
 
   prop "any time with the diff hour as * n * * * does not match" $ arbitraryTimeFields $ \y m d h mn ->
-    let sched = stars { hour = Hours $ SpecificField $ stepMax 23 h }
+    let sched = stars { hour = Hours $ Field $ SpecificField $ stepMax 23 h }
         t     = day' y m d h mn
     in not $ scheduleMatches sched t
 
   prop "any time with the same day as * * n * * matches" $ \t ->
     let (_, m, d, h, mn) = timeComponents t
-        sched = CronSchedule (Minutes $ SpecificField mn)
-                             (Hours $ SpecificField h)
-                             (DaysOfMonth $ SpecificField d)
-                             (Months $ SpecificField m)
-                             (DaysOfWeek Star)
+        sched = CronSchedule (Minutes $ Field $ SpecificField mn)
+                             (Hours $ Field $ SpecificField h)
+                             (DaysOfMonth $ Field $ SpecificField d)
+                             (Months $ Field $ SpecificField m)
+                             (DaysOfWeek $ Field Star)
     in scheduleMatches sched t
 
   prop "any time with the diff day as * * n * * does not match" $ arbitraryTimeFields $ \y m d h mn ->
-    let sched = stars { dayOfMonth = DaysOfMonth $ SpecificField $ stepMax 31 d }
+    let sched = stars { dayOfMonth = DaysOfMonth $ Field $ SpecificField $ stepMax 31 d }
         t     = day' y m d h mn
     in not $ scheduleMatches sched t
 
@@ -140,6 +139,11 @@ describeNextMatch = describe "nextMatch" $ do
 
   prop "predicts the same time next month for monthly" $ \t ->
     nextMatch monthly t == Just (t & months +~ 1)
+
+  prop "is always in the future" $ \sched t ->
+    case nextMatch sched t of
+      (Just t') -> t' > t
+      Nothing   -> True
 
 arbitraryTimeFields f y m d h mn = f (getPositive y)
                                      (min 12 $ getPositive m)
@@ -165,22 +169,21 @@ describeCronScheduleShow = describe "CronSchedule show" $ do
          "CronSchedule * * * * *"
 
   it "formats specific numbers" $
-    show stars { dayOfWeek = DaysOfWeek (SpecificField 3)} `shouldBe`
+    show stars { dayOfWeek = DaysOfWeek (Field $ SpecificField 3)} `shouldBe`
          "CronSchedule * * * * 3"
 
   it "formats lists" $
-    show stars { minute = Minutes (ListField [SpecificField 1,
-                                   SpecificField 2,
-                                   SpecificField 3])} `shouldBe`
+    let list = SpecificField 1 :| [SpecificField 2, SpecificField 3]
+    in show stars { minute = Minutes (ListField list)} `shouldBe`
          "CronSchedule 1,2,3 * * * *"
 
   it "formats ranges" $
-    show stars { hour = Hours (RangeField 7 10)} `shouldBe`
+    show stars { hour = Hours (Field $ RangeField 7 10)} `shouldBe`
          "CronSchedule * 7-10 * * *"
 
   it "formats steps" $
-    show stars { dayOfMonth = DaysOfMonth (StepField (ListField [SpecificField 3, SpecificField 5]) 2)} `shouldBe`
-         "CronSchedule * * 3,5/2 * *"
+    show stars { dayOfMonth = DaysOfMonth (StepField (SpecificField 3) 2)} `shouldBe`
+         "CronSchedule * * 3/2 * *"
 
   it "formats @yearly" $
     show yearly `shouldBe` "CronSchedule 0 0 1 1 *"
@@ -201,7 +204,7 @@ describeCronScheduleShow = describe "CronSchedule show" $ do
     show everyMinute `shouldBe` "CronSchedule * * * * *"
 
 describeCrontabShow :: Spec
-describeCrontabShow = describe "Crontab Show" $ do
+describeCrontabShow = describe "Crontab Show" $
   it "prints nothing for an empty crontab" $
     show (Crontab []) `shouldBe` ""
 
@@ -221,11 +224,7 @@ entry :: CrontabEntry
 entry = CommandEntry stars "do stuff"
 
 stars :: CronSchedule
-stars = CronSchedule (Minutes Star)
-                     (Hours Star)
-                     (DaysOfMonth Star)
-                     (Months Star)
-                     (DaysOfWeek Star)
+stars = everyMinute
 
 timeComponents :: UTCTime -> (Integer, Int, Int, Int, Int)
 timeComponents (UTCTime dy dt) = (y, m, d, h, mn)

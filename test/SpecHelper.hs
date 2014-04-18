@@ -1,9 +1,11 @@
 {-# LANGUAGE TemplateHaskell #-}
-module SpecHelper (module X) where
+module SpecHelper ( module X
+                  , NonEmpty(..) ) where
 
 import Control.Applicative as X
 import Control.Lens as X hiding (elements)
 import Data.DeriveTH
+import Data.List.NonEmpty (NonEmpty(..))
 import Data.Time.Lens as X
 import Data.Time.Clock as X
 import Data.Time.Calendar as X
@@ -22,6 +24,8 @@ instance Arbitrary UTCTime where
     t <- fromInteger . getPositive <$> arbitrary
     return $ UTCTime d t
 
+$(derive makeArbitrary ''NonEmpty)
+$(derive makeArbitrary ''BaseField)
 $(derive makeArbitrary ''CronField)
 $(derive makeArbitrary ''MinuteSpec)
 $(derive makeArbitrary ''HourSpec)

@@ -1,6 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
 module System.Cron.ParserSpec (spec) where
--- TODO: this *should* just work with {-# OPTIONS_GHC -F -pgmF hspec-discover #-}
 
 import Data.Attoparsec.Text (parseOnly, Parser)
 import Data.Text (Text)
@@ -9,6 +8,8 @@ import Test.Hspec
 import System.Cron
 import System.Cron.Parser
 import Test.Hspec.Expectations.Contrib (isLeft)
+
+import SpecHelper
 
 spec :: Spec
 spec = sequence_ [describeCronSchedule,
@@ -23,19 +24,21 @@ describeCronSchedule = describe "cronSchedule" $ do
                           stars
 
   it "parses specific values" $
-    assertSuccessfulParse "1 2 3 * *"
-                           stars { minute      = Minutes (SpecificField 1),
-                                   hour        = Hours (SpecificField 2),
-                                   dayOfMonth  = DaysOfMonth (SpecificField 3) }
+    assertSuccessfulParse
+    "1 2 3 * *"
+    stars { minute      = Minutes $ Field $ SpecificField 1,
+            hour        = Hours $ Field $ SpecificField 2,
+            dayOfMonth  = DaysOfMonth $ Field $ SpecificField 3 }
 
   it "parses list values" $
-    assertSuccessfulParse "* * 3,4 * *"
-                           stars { dayOfMonth  = DaysOfMonth (ListField [SpecificField 3,
-                                                                         SpecificField 4]) }
+    let list = SpecificField 3 :| [SpecificField 4]
+    in assertSuccessfulParse
+       "* * 3,4 * *"
+       stars { dayOfMonth  = DaysOfMonth $ ListField list }
 
   it "parses range values" $
     assertSuccessfulParse "* * 3-4 * *"
-                           stars { dayOfMonth  = DaysOfMonth (RangeField 3 4) }
+                           stars { dayOfMonth  = DaysOfMonth (Field $ RangeField 3 4) }
 
   it "parses step values" $
     assertSuccessfulParse "*/2 * 2-10/4 * *"
@@ -71,25 +74,26 @@ describeCronSchedule = describe "cronSchedule" $ do
 
   it "parses ranges at the last field" $
     assertSuccessfulParse "* * * * 3-4"
-                           stars { dayOfWeek  = DaysOfWeek (RangeField 3 4) }
+                           stars { dayOfWeek  = DaysOfWeek (Field $ RangeField 3 4) }
   it "parses lists at the last field" $
-    assertSuccessfulParse "* * * * 3,4"
-                           stars { dayOfWeek  = DaysOfWeek (ListField [SpecificField 3,
-                                                                       SpecificField 4]) }
+    let list = SpecificField 3 :| [SpecificField 4]
+    in assertSuccessfulParse
+       "* * * * 3,4"
+       stars { dayOfWeek  = DaysOfWeek $ ListField list }
   it "parses steps at the last field" $
     assertSuccessfulParse "* * * * */4"
                            stars { dayOfWeek  = DaysOfWeek (StepField Star 4) }
   it "parses a sunday as 7" $
     assertSuccessfulParse "* * * * 7"
-                           stars { dayOfWeek  = DaysOfWeek (SpecificField 7) }
+                           stars { dayOfWeek  = DaysOfWeek (Field $ SpecificField 7) }
   it "parses a sunday as 0" $
     assertSuccessfulParse "* * * * 0"
-                           stars { dayOfWeek  = DaysOfWeek (SpecificField 0) }
+                           stars { dayOfWeek  = DaysOfWeek (Field $ SpecificField 0) }
   where assertSuccessfulParse = assertParse cronSchedule
         assertFailedParse = assertNoParse cronSchedule
 
 describeCronScheduleLoose :: Spec
-describeCronScheduleLoose = describe "cronScheduleLoose" $ do
+describeCronScheduleLoose = describe "cronScheduleLoose" $
   it "is okay with extaneous input" $
     assertSuccessfulParse "* * * * * *"
                           stars
@@ -172,8 +176,4 @@ entry :: CrontabEntry
 entry = CommandEntry stars "do stuff"
 
 stars :: CronSchedule
-stars = CronSchedule (Minutes Star)
-                     (Hours Star)
-                     (DaysOfMonth Star)
-                     (Months Star)
-                     (DaysOfWeek Star)
+stars = everyMinute

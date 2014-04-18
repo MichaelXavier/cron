@@ -35,6 +35,7 @@ module System.Cron (CronSchedule(..),
                     MonthSpec(..),
                     DayOfMonthSpec(..),
                     DayOfWeekSpec(..),
+                    BaseField(..),
                     CronField(..),
                     yearly,
                     monthly,
@@ -45,7 +46,9 @@ module System.Cron (CronSchedule(..),
                     scheduleMatches,
                     nextMatch) where
 
-import           Data.List                   (intercalate)
+import           Data.List (intercalate)
+import           Data.List.NonEmpty (NonEmpty)
+import qualified Data.List.NonEmpty as NE
 
 import           Data.Text                   (Text, unpack)
 import           Data.Time.Calendar          (toGregorian)
@@ -128,48 +131,54 @@ instance Show DayOfWeekSpec where
   show (DaysOfWeek cf) = show cf
 
 -- | Individual field of a cron expression.
-data CronField = Star                  | -- ^ Matches anything
-                 SpecificField Int     | -- ^ Matches a specific value (e.g. 1)
-                 RangeField Int Int    | -- ^ Matches a range of values (e.g. 1-3)
-                 ListField [CronField] | -- ^ Matches a list of expressions. Recursive lists are invalid and the parser will never produce them.
-                 StepField CronField Int -- ^ Matches a stepped expression, e.g. (*/2). Recursive steps or stepped lists are invalid and the parser will never produce them.
-                 deriving (Eq)
+data BaseField = Star              | -- ^ Matches anything
+                 SpecificField Int | -- ^ Matches a specific value (e.g. 1)
+                 RangeField Int Int  -- ^ Matches a range of values (e.g. 1-3)
+               deriving (Eq)
 
-instance Show CronField where
+instance Show BaseField where
   show Star                  = "*"
   show (SpecificField i)     = show i
   show (RangeField x y)      = show x ++ "-" ++ show y
-  show (ListField xs)        = intercalate "," $ map show xs
+
+data CronField = Field BaseField                |
+                 ListField (NonEmpty BaseField) | -- ^ Matches a list of expressions. Recursive lists are invalid and the parser will never produce them.
+                 StepField BaseField Int          -- ^ Matches a stepped expression, e.g. (*/2). Recursive steps or stepped lists are invalid and the parser will never produce them.
+                 deriving (Eq)
+
+instance Show CronField where
+  show (Field f)             = show f
+  show (ListField xs)        = intercalate "," . NE.toList . NE.map show $ xs
   show (StepField f step) = show f ++ "/" ++ show step
 
 
 -- | Shorthand for every January 1st at midnight. Parsed with \@yearly, 0 0 1 1 *
 yearly :: CronSchedule
-yearly = monthly { month = Months $ SpecificField 1 }
+yearly = monthly { month = Months . Field . SpecificField $ 1 }
 
 -- | Shorthand for every 1st of the month at midnight. Parsed with \@monthly, 0 0 1 * *
 monthly :: CronSchedule
-monthly = daily { dayOfMonth = DaysOfMonth $ SpecificField 1 }
+monthly = daily { dayOfMonth = DaysOfMonth . Field . SpecificField $ 1 }
 
 -- | Shorthand for every sunday at midnight. Parsed with \@weekly, 0 0 * * 0
 weekly :: CronSchedule
-weekly = daily { dayOfWeek = DaysOfWeek $ SpecificField 0 }
+weekly = daily { dayOfWeek = DaysOfWeek . Field . SpecificField $ 0 }
 
 -- | Shorthand for every day at midnight. Parsed with \@daily, 0 0 * * *
 daily :: CronSchedule
-daily = hourly { hour = Hours $ SpecificField 0 }
+daily = hourly { hour = Hours . Field . SpecificField $ 0 }
 
 -- | Shorthand for every hour on the hour. Parsed with \@hourly, 0 * * * *
 hourly :: CronSchedule
-hourly = everyMinute { minute = Minutes $ SpecificField 0 }
+hourly = everyMinute { minute = Minutes . Field . SpecificField $ 0 }
 
 -- | Shorthand for an expression that always matches. Parsed with * * * * *
 everyMinute :: CronSchedule
-everyMinute = CronSchedule { minute     = Minutes Star,
-                             hour       = Hours Star,
-                             dayOfMonth = DaysOfMonth Star,
-                             month      = Months Star,
-                             dayOfWeek  = DaysOfWeek Star}
+everyMinute = CronSchedule { minute     = Minutes . Field $ Star,
+                             hour       = Hours . Field $ Star,
+                             dayOfMonth = DaysOfMonth . Field $ Star,
+                             month      = Months . Field $ Star,
+                             dayOfWeek  = DaysOfWeek . Field $ Star}
 
 -- | Determines if the given time is matched by the given schedule. A
 -- periodical task would use this to determine if an action needs to be
@@ -183,7 +192,7 @@ scheduleMatches CronSchedule { minute     = Minutes mins,
                                month      = Months months,
                                dayOfWeek  = DaysOfWeek dows }
                 UTCTime { utctDay = uDay,
-                          utctDayTime = uTime } = all id validations
+                          utctDayTime = uTime } = and validations
   where (_, mth, dom) = toGregorian uDay
         (_, _, dow) = toWeekDate uDay
         TimeOfDay { todHour = hr,
@@ -198,20 +207,27 @@ scheduleMatches CronSchedule { minute     = Minutes mins,
 nextMatch :: CronSchedule -> UTCTime -> Maybe UTCTime
 nextMatch = undefined
 
+--TODO: break out basic field into another function?
 matchField :: Int
               -> CronUnit
               -> CronField
               -> Bool
-matchField _ _ Star                      = True
-matchField x CDayOfWeek (SpecificField y)
-  | x == y || x == 0 && y == 7 || x == 7 && y == 0 = True
-  | otherwise                                      = False
-matchField x _ (SpecificField y)         = x == y
-matchField x _ (RangeField y y')         = x >= y && x <= y'
-matchField x unit (ListField fs)         = any (matchField x unit) fs
+matchField x unit (Field f)          = matchField' x unit f
+matchField x unit (ListField fs)     = any (matchField' x unit) . NE.toList $ fs
 matchField x unit (StepField f step) = elem x $ expandDivided f step unit
 
-expandDivided :: CronField
+matchField' :: Int
+               -> CronUnit
+               -> BaseField
+               -> Bool
+matchField' _ _ Star                        = True
+matchField' x CDayOfWeek (SpecificField y)
+  | x == y || x == 0 && y == 7 || x == 7 && y == 0 = True
+  | otherwise                                      = False
+matchField' x _ (SpecificField y)         = x == y
+matchField' x _ (RangeField y y')         = x >= y && x <= y'
+
+expandDivided :: BaseField
                  -> Int
                  -> CronUnit
                  -> [Int]
