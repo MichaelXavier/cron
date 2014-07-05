@@ -17,14 +17,13 @@
 -- > import System.Cron
 -- >
 -- > main :: IO ()
--- > main = do
--- >   forever do
--- >     now <- getCurrentTime
--- >     when (scheduleMatches schedule now) doWork
--- >     putStrLn "sleeping"
--- >     threadDelay 100000
--- >   where doWork   = putStrLn "Time to work"
--- >         schedule = hourly
+-- > main = forever $ do
+-- >          now <- getCurrentTime
+-- >          when (scheduleMatches schedule now) doWork
+-- >          putStrLn "sleeping"
+-- >          threadDelay 100000
+-- >        where doWork   = putStrLn "Time to work"
+-- >              schedule = hourly
 --
 --------------------------------------------------------------------
 module System.Cron (CronSchedule(..),
