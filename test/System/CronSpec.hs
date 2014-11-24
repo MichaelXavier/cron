@@ -128,7 +128,7 @@ describeScheduleMatches = describe "ScheduleMatches" $ do
 
 arbitraryTimeFields f y m d h mn = f (getPositive y)
                                      (min 12 $ getPositive m)
-                                     (min 31 $ getPositive d)
+                                     (min 28 $ getPositive d)
                                      (min 23 $ getPositive h)
                                      (min 59 $ getPositive mn)
 
