@@ -181,7 +181,9 @@ scheduleMatches CronSchedule { minute     = Minutes mins,
                                month      = Months months,
                                dayOfWeek  = DaysOfWeek dows }
                 UTCTime { utctDay = uDay,
-                          utctDayTime = uTime } = mnv && hrv && mthv && (domv || dowv)
+                          utctDayTime = uTime } = if restricted doms && restricted dows
+                                                  then mnv && hrv && mthv && (domv || dowv)
+                                                  else mnv && hrv && mthv && domv && dowv
   where (_, mth, dom) = toGregorian uDay
         (_, _, dow) = toWeekDate uDay
         TimeOfDay { todHour = hr,
@@ -192,6 +194,11 @@ scheduleMatches CronSchedule { minute     = Minutes mins,
                                                  (mth, CMonth, months),
                                                  (dow, CDayOfWeek, dows)]
         validate (x, y, z) = matchField x y z
+        restricted Star = False
+        restricted (SpecificField _) = True
+        restricted (RangeField _ _) = True
+        restricted (ListField _) = True
+        restricted (StepField f _) = restricted f
 
 matchField :: Int
               -> CronUnit
