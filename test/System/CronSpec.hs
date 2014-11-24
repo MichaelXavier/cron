@@ -78,7 +78,7 @@ describeScheduleMatches = describe "ScheduleMatches" $ do
 
   it "only needs weekday or monthday to match" $
     scheduleMatches stars { dayOfWeek = DaysOfWeek (SpecificField 1),
-                            dayOfWeek = DaysOfMonth (SpecificField 1) }
+                            dayOfMonth = DaysOfMonth (SpecificField 1) }
                     (UTCTime (fromGregorian 2014 11 1) 600)
 
   prop "star matches everything" $ \t ->
