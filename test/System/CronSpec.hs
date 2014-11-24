@@ -76,6 +76,11 @@ describeScheduleMatches = describe "ScheduleMatches" $ do
   it "does not match weekly on another day at midnight" $
     not $ scheduleMatches weekly (UTCTime (fromGregorian 2014 6 5) 600)
 
+  it "only needs weekday or monthday to match" $
+    scheduleMatches stars { dayOfWeek = DaysOfWeek (SpecificField 1),
+                            dayOfWeek = DaysOfMonth (SpecificField 1) }
+                    (UTCTime (fromGregorian 2014 11 1) 600)
+
   prop "star matches everything" $ \t ->
     scheduleMatches stars t
 
