@@ -181,17 +181,24 @@ scheduleMatches CronSchedule { minute     = Minutes mins,
                                month      = Months months,
                                dayOfWeek  = DaysOfWeek dows }
                 UTCTime { utctDay = uDay,
-                          utctDayTime = uTime } = all id validations
+                          utctDayTime = uTime } = if restricted doms && restricted dows
+                                                  then mnv && hrv && mthv && (domv || dowv)
+                                                  else mnv && hrv && mthv && domv && dowv
   where (_, mth, dom) = toGregorian uDay
         (_, _, dow) = toWeekDate uDay
         TimeOfDay { todHour = hr,
                     todMin  = mn} = timeToTimeOfDay uTime
-        validations = map validate [(mn, CMinute, mins),
-                                    (hr, CHour, hrs),
-                                    (dom, CDayOfMonth, doms),
-                                    (mth, CMonth, months),
-                                    (dow, CDayOfWeek, dows)]
+        [mnv,hrv,domv,mthv,dowv] = map validate [(mn, CMinute, mins),
+                                                 (hr, CHour, hrs),
+                                                 (dom, CDayOfMonth, doms),
+                                                 (mth, CMonth, months),
+                                                 (dow, CDayOfWeek, dows)]
         validate (x, y, z) = matchField x y z
+        restricted Star = False
+        restricted (SpecificField _) = True
+        restricted (RangeField _ _) = True
+        restricted (ListField _) = True
+        restricted (StepField f _) = restricted f
 
 matchField :: Int
               -> CronUnit

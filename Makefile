@@ -1,4 +1,4 @@
-CABAL=cabal-dev
+CABAL=cabal
 EXPORTS=PATH=$$PATH:cabal-dev/bin
 CONFIG_OPTS=
 
@@ -17,7 +17,7 @@ uninstall:
 sdist: configure
 	$(CABAL) sdist
 	
-configure: cron.cabal install_dependencies
+configure: cron.cabal install_dependencies sandbox
 	$(CABAL) configure $(CONFIG_OPTS)
 
 install_dependencies:
@@ -30,12 +30,16 @@ test: configure_tests
 autotest: test
 	while true; do inotifywait -qr -e modify test/ src/; make test; done
 
-configure_tests:
+configure_tests: sandbox
 	$(CABAL) configure --enable-tests $(CONFIG_OPTS)
 
-docs:
+docs: sandbox
 	$(CABAL) haddock
+
+sandbox:
+	$(CABAL) sandbox init
 
 clean:
 	$(CABAL) clean
+	$(CABAL) sandbox delete
 	rm -f **/*.{o,hi} **/**/*.{o,hi}
