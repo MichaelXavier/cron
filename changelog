@@ -1,2 +1,6 @@
+# 0.2.2
+* Fix edge case when day of month and day of week are both specified. Credit to @joelwilliamson
+# 0.2.1
+* Fix day of week bug. Credit to @meteogrid
 # 0.1.2
 * Relax dependency on text to allow 1.0
