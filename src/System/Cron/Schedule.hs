@@ -35,6 +35,8 @@ module System.Cron.Schedule
     , Schedule
     , ScheduleT (..)
 
+    , MonadSchedule (..)
+
     , runSchedule
     , runScheduleT
 
