@@ -34,13 +34,16 @@ Bug-Reports:        http://github.com/michaelxavier/cron/issues
 
 library
  Exposed-modules: System.Cron,
-                  System.Cron.Parser
+                  System.Cron.Parser,
+                  System.Cron.Schedule
  Ghc-Options:     -Wall
  Hs-source-dirs:  src
  build-depends:   base            >= 4 && < 5,
                   attoparsec      >= 0.10,
                   text            >= 0.11 && < 2,
-                  time            >= 1.4
+                  time            >= 1.4,
+                  old-locale      >= 1.0,
+                  mtl             >= 2.2
 
 test-suite spec
   Type:           exitcode-stdio-1.0
