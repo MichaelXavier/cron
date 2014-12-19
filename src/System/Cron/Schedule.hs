@@ -98,12 +98,10 @@ execSchedule s = let res = runSchedule s
                         Right (_, jobs) -> mapM forkJob jobs
 
 forkJob :: Job -> IO ThreadId
-forkJob (Job s a) = forkIO $ do
-        findNextMinuteDelay >>= threadDelay
-        forever $ do
+forkJob (Job s a) = forkIO $ forever $ do
             now <- getCurrentTime
+            findNextMinuteDelay >>= threadDelay
             when (scheduleMatches s now) a
-            threadDelay $ 1000000 * 60
 
 findNextMinuteDelay :: IO Int
 findNextMinuteDelay = do
