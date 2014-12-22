@@ -43,7 +43,7 @@ main = do
         addJob job2 "0 * * * *"
     print tids
     ...
-    
+
 job1 :: IO ()
 job1 = putStrLn "Job 1"
 
