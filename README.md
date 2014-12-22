@@ -31,7 +31,28 @@ To generate docs:
 
     make docs
 
+#### Scheduler
+Cron offers a scheduling monad which can be found in `System.Cron.Schedule`. This monad transform allows you to declare a set of jobs (of the type `IO ()`) that will be executed at intervals defined by cron strings.
+
+```haskell
+main :: IO ()
+main = do
+    ...
+    tids <- execSchedule $ do
+        addJob job1 "* * * * *"
+        addJob job2 "0 * * * *"
+    print tids
+    ...
+    
+job1 :: IO ()
+job1 = putStrLn "Job 1"
+
+job2 :: IO ()
+job2 = putStrLn "Job 2"
+```
+
 ## Contributors
 
 * [Simon Hengel](https://github.com/sol)
 * [Alberto Valverde](https://github.com/albertov)
+* [Andrew Rademacher](https://github.com/AndrewRademacher)

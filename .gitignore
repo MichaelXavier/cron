@@ -1,3 +1,5 @@
+cabal.sandbox.config
+.cabal-sandbox/
 dist
 cabal-dev
 *.o
