@@ -99,21 +99,20 @@ execSchedule s = let res = runSchedule s
 
 forkJob :: Job -> IO ThreadId
 forkJob (Job s a) = forkIO $ forever $ do
-            now <- getCurrentTime
-            findNextMinuteDelay >>= threadDelay
-            when (scheduleMatches s now) a
+            (timeAt, delay) <- findNextMinuteDelay
+            threadDelay delay
+            when (scheduleMatches s timeAt) a
 
-findNextMinuteDelay :: IO Int
+findNextMinuteDelay :: IO (UTCTime, Int)
 findNextMinuteDelay = do
         now <- getCurrentTime
-        let f    = formatTime defaultTimeLocale fmtFront now
-            m    = (read (formatTime defaultTimeLocale fmtMinutes now) :: Int) + 1
-            r    = f ++ ":" ++ if length (show m) == 1 then "0" ++ show m else show m
-            next = readTime defaultTimeLocale fmtRead r :: UTCTime
-        newNow <- getCurrentTime    -- Compensates for the time spent calculating what the next minute is.
-        let diff  = diffUTCTime next newNow
+        let f     = formatTime defaultTimeLocale fmtFront now
+            m     = (read (formatTime defaultTimeLocale fmtMinutes now) :: Int) + 1
+            r     = f ++ ":" ++ if length (show m) == 1 then "0" ++ show m else show m
+            next  = readTime defaultTimeLocale fmtRead r :: UTCTime
+            diff  = diffUTCTime next now
             delay = round (realToFrac (diff * 1000000) :: Double) :: Int
-        return delay
+        return (next, delay)
     where fmtFront   = "%F %H"
           fmtMinutes = "%M"
           fmtRead    = "%F %H:%M"
