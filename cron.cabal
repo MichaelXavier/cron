@@ -59,6 +59,7 @@ test-suite spec
                   text                  >= 0.11 && < 2,
                   time                  >= 1.4,
                   transformers          >= 0.4
+  Ghc-Options: -threaded -rtsopts
 
 source-repository head
   Type:     git
