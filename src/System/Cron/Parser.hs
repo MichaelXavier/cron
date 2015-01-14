@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE CPP                        #-}
 --------------------------------------------------------------------
 -- |
 -- Module      : System.Cron.Parser
@@ -27,7 +28,11 @@ module System.Cron.Parser (cronSchedule,
 
 import           System.Cron
 
+#if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative  (pure, (*>), (<$>), (<*), (<*>), (<|>))
+#else
+import           Control.Applicative  ((<$>), (<|>))
+#endif
 import           Data.Char (isSpace)
 import           Data.Attoparsec.Text (Parser)
 import qualified Data.Attoparsec.Text as A

@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveFunctor              #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE CPP                        #-}
 
 --------------------------------------------------------------------
 -- |
@@ -43,7 +44,9 @@ module System.Cron.Schedule
     , execSchedule
     ) where
 
+#if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative
+#endif
 import           Control.Concurrent
 import           Control.Monad.Except
 import           Control.Monad.Identity
@@ -53,7 +56,16 @@ import           Data.Text              (pack)
 import           Data.Time
 import           System.Cron
 import           System.Cron.Parser
+#if !MIN_VERSION_time(1,5,0)
 import           System.Locale
+#endif
+
+readTime' :: TimeLocale -> String -> String -> UTCTime
+#if MIN_VERSION_time(1,5,0)
+readTime' =  parseTimeOrError True
+#else
+readTime' = readTime
+#endif
 
 {- Scheduleing monad -}
 
@@ -109,7 +121,7 @@ findNextMinuteDelay = do
         let f     = formatTime defaultTimeLocale fmtFront now
             m     = (read (formatTime defaultTimeLocale fmtMinutes now) :: Int) + 1
             r     = f ++ ":" ++ if length (show m) == 1 then "0" ++ show m else show m
-            next  = readTime defaultTimeLocale fmtRead r :: UTCTime
+            next  = readTime' defaultTimeLocale fmtRead r :: UTCTime
             diff  = diffUTCTime next now
             delay = round (realToFrac (diff * 1000000) :: Double) :: Int
         return (next, delay)
