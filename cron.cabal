@@ -52,6 +52,10 @@ test-suite spec
   Type:           exitcode-stdio-1.0
   Main-Is:        Spec.hs
   Hs-Source-Dirs: test
+  Other-Modules:  SpecHelper
+                  System.Cron.ParserSpec
+                  System.Cron.ScheduleSpec
+                  System.CronSpec
   Build-Depends:  base                  >= 4 && < 5,
                   cron,
                   hspec                 >= 1.3,
