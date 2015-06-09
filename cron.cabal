@@ -1,5 +1,5 @@
 Name:                cron
-Version:             0.2.5
+Version:             0.2.6
 Description:
   Cron data structure and Attoparsec parser. The idea is to embed it in larger
   systems which want to roll their own scheduled tasks in a format that people
