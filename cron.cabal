@@ -46,7 +46,8 @@ library
                   text            >= 0.11 && < 2,
                   time            >= 1.4,
                   old-locale      >= 1.0,
-                  mtl             >= 2.2
+                  mtl             >= 2.0.1,
+                  mtl-compat      >= 0.2.1
 
 test-suite spec
   Type:           exitcode-stdio-1.0
@@ -65,7 +66,7 @@ test-suite spec
                   attoparsec            >= 0.10,
                   text                  >= 0.11 && < 2,
                   time                  >= 1.4,
-                  transformers          >= 0.4
+                  transformers-compat   >= 0.4
   Ghc-Options: -threaded -rtsopts
 
 source-repository head
