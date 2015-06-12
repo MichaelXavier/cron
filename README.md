@@ -56,3 +56,4 @@ job2 = putStrLn "Job 2"
 * [Simon Hengel](https://github.com/sol)
 * [Alberto Valverde](https://github.com/albertov)
 * [Andrew Rademacher](https://github.com/AndrewRademacher)
+* [Peter Simons](https://github.com/peti)
