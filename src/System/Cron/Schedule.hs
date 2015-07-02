@@ -113,7 +113,7 @@ forkJob :: Job -> IO ThreadId
 forkJob (Job s a) = forkIO $ forever $ do
             (timeAt, delay) <- findNextMinuteDelay
             threadDelay delay
-            when (scheduleMatches s timeAt) a
+            when (scheduleMatches s timeAt) (void $ forkIO a)
 
 findNextMinuteDelay :: IO (UTCTime, Int)
 findNextMinuteDelay = do
