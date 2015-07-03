@@ -85,6 +85,9 @@ describeCronSchedule = describe "cronSchedule" $ do
   it "parses a sunday as 0" $
     assertSuccessfulParse "* * * * 0"
                            stars { dayOfWeek  = DaysOfWeek (SpecificField 0) }
+  it "parses another example" $
+    assertSuccessfulParse "1-59/2 * * * *"
+                          stars { minute     = Minutes (StepField (RangeField 1 59) 2) }
   where assertSuccessfulParse = assertParse cronSchedule
         assertFailedParse = assertNoParse cronSchedule
 
