@@ -3,6 +3,7 @@ module System.Cron.ScheduleSpec
     ) where
 
 import           Control.Concurrent
+import           Control.Exception
 import           Test.Hspec
 
 import           System.Cron.Schedule
@@ -36,6 +37,9 @@ describeExecSchedule :: Spec
 describeExecSchedule = describe "execSchedule" $ do
     it "should set an mvar each minute" $
         fireAndWait >>= (`shouldBe` "dost thou even hoist")
+    it "throws a ScheduleError on an invalid schedule" $ do
+        res <- try $ execSchedule (addJob (return ()) "nope")
+        res `shouldBe` Left (ParseError "Failed reading: takeWhile1")
     where fireAndWait = do
             v    <- newEmptyMVar
             tids <- execSchedule $ do

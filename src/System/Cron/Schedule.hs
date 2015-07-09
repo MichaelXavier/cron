@@ -1,7 +1,8 @@
+{-# LANGUAGE CPP                        #-}
+{-# LANGUAGE DeriveDataTypeable         #-}
 {-# LANGUAGE DeriveFunctor              #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
-{-# LANGUAGE CPP                        #-}
 
 --------------------------------------------------------------------
 -- |
@@ -48,12 +49,14 @@ module System.Cron.Schedule
 import           Control.Applicative
 #endif
 import           Control.Concurrent
+import           Control.Exception
 import           Control.Monad.Except
 import           Control.Monad.Identity
 import           Control.Monad.State
 import           Data.Attoparsec.Text   (parseOnly)
 import           Data.Text              (pack)
 import           Data.Time
+import           Data.Typeable
 import           System.Cron
 import           System.Cron.Parser
 #if !MIN_VERSION_time(1,5,0)
@@ -76,7 +79,10 @@ instance Show Job where
     show (Job c _) = "(Job " ++ show c ++ ")"
 
 data ScheduleError = ParseError String
-                   deriving (Show)
+                   deriving (Show, Eq, Typeable)
+
+instance Exception ScheduleError
+
 
 type Schedule = ScheduleT Identity
 
@@ -103,19 +109,19 @@ instance (Monad m) => MonadSchedule (ScheduleT m) where
 
 {- Monitoring Engine -}
 
--- | Schedule all of the jobs to run at appropriate intervals. Each 
--- job that is launched gets a scheduling thread to itself. Each 
+-- | Schedule all of the jobs to run at appropriate intervals. Each
+-- job that is launched gets a scheduling thread to itself. Each
 -- time a scheduling thread launches a job, the job is forked onto
 -- a new thread. This means that if a job throws an excpetion in IO,
--- its thread will be killed, but it will continue to be scheduled 
--- in the future.
+-- its thread will be killed, but it will continue to be scheduled
+-- in the future. Will throw a @ScheduleError@ on an invalid schedule
 execSchedule :: Schedule () -> IO [ThreadId]
 execSchedule s = let res = runSchedule s
                   in case res of
-                        Left  e         -> print e >> return []
+                        Left  e         -> throw e
                         Right (_, jobs) -> mapM forkJob jobs
 
--- | Start a job-runner thread that runs a job at appropriate 
+-- | Start a job-runner thread that runs a job at appropriate
 -- intervals. Each time it is run, a new thread is forked for it,
 -- meaning that a single exception does not take down the
 -- scheduler.
