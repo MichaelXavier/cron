@@ -114,7 +114,7 @@ instance (Monad m) => MonadSchedule (ScheduleT m) where
 -- time a scheduling thread launches a job, the job is forked onto
 -- a new thread. This means that if a job throws an excpetion in IO,
 -- its thread will be killed, but it will continue to be scheduled
--- in the future. Will throw a @ScheduleError@ on an invalid schedule
+-- in the future. Will throw a 'ScheduleError' on an invalid schedule
 execSchedule :: Schedule () -> IO [ThreadId]
 execSchedule s = let res = runSchedule s
                   in case res of
