@@ -51,9 +51,22 @@ job2 :: IO ()
 job2 = putStrLn "Job 2"
 ```
 
+#### Unicron
+Cron includes an executable, `unicron`, that is a simple crontab runner which can be used in a single-user context and, for example, under a process supervisor like [angel](https://github.com/MichaelXavier/Angel).
+
+To test a crontab:
+
+    unicron -t /apps/webapp/crontab
+
+To run a crontab:
+
+    sudo -u webapp unicron /apps/webapp/crontab
+
+
 ## Contributors
 
 * [Simon Hengel](https://github.com/sol)
 * [Alberto Valverde](https://github.com/albertov)
 * [Andrew Rademacher](https://github.com/AndrewRademacher)
 * [Peter Simons](https://github.com/peti)
+* [Vladimir Kirillov](https://github.com/proger)
