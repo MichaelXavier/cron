@@ -11,6 +11,9 @@ Description:
   is where you will find the parsers `cronSchedule`, `crontabEntry` and
   `cronTab`. To parse individual schedules up to full crontab files.
 
+  Includes an executable, `unicron`, that is a simple crontab runner which
+  can be used in a single-user context.
+
 Synopsis:            Cron datatypes and Attoparsec parser
 Category:            Text, Parsing, System
 License:             MIT
@@ -48,6 +51,21 @@ library
                   old-locale      >= 1.0,
                   mtl             >= 2.0.1,
                   mtl-compat      >= 0.2.1
+
+
+executable unicron
+ Main-Is:         System/Cron/Unicron.hs
+ Ghc-Options:     -Wall
+ Hs-source-dirs:  src
+ build-depends:   attoparsec      >= 0.10
+                , base            >= 4 && < 5
+                , mtl             >= 2.0.1
+                , mtl-compat      >= 0.2.1
+                , old-locale      >= 1.0
+                , process         >= 1.2.0.0
+                , text            >= 0.11 && < 2
+                , time            >= 1.4
+
 
 test-suite spec
   Type:           exitcode-stdio-1.0
