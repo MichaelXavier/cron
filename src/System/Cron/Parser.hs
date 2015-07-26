@@ -12,14 +12,14 @@
 --
 -- Attoparsec parser combinator for cron schedules. See cron documentation for
 -- how those are formatted.
--- 
+--
 -- > import Data.Attoparsec.Text (parseOnly)
 -- > import System.Cron.Parser
--- > 
+-- >
 -- > main :: IO ()
 -- > main = do
 -- >   print $ parseOnly cronSchedule "*/2 * 3 * 4,5,6"
--- 
+--
 --------------------------------------------------------------------
 module System.Cron.Parser (cronSchedule,
                            cronScheduleLoose,
@@ -36,6 +36,7 @@ import           Control.Applicative  ((<$>), (<|>))
 import           Data.Char (isSpace)
 import           Data.Attoparsec.Text (Parser)
 import qualified Data.Attoparsec.Text as A
+import           Data.Maybe (catMaybes)
 import           Data.Text (Text)
 
 -- | Attoparsec Parser for a cron schedule. Complies fully with the standard
@@ -59,9 +60,9 @@ cronScheduleLoose = yearlyP  <|>
 -- | Parses a full crontab file, omitting comments and including environment
 -- variable sets (e.g FOO=BAR).
 crontab :: Parser Crontab
-crontab = Crontab <$> A.sepBy lineP (A.char '\n')
-  where lineP    = A.skipMany commentP *> crontabEntry
-        commentP = A.skipSpace *> A.char '#' *> skipToEOL
+crontab = Crontab . catMaybes <$> commentOrEntry `A.sepBy` A.space <* A.skipSpace
+  where comment = A.skipSpace *> A.char '#' *> skipToEOL *> pure Nothing
+        commentOrEntry = (comment <|> (Just <$> crontabEntry))
 
 -- | Parses an individual crontab line, which is either a scheduled command or
 -- an environmental variable set.

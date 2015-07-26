@@ -2,7 +2,8 @@
 module System.Cron.ParserSpec (spec) where
 -- TODO: this *should* just work with {-# OPTIONS_GHC -F -pgmF hspec-discover #-}
 
-import Data.Attoparsec.Text (parseOnly, Parser)
+import Control.Applicative ((<*))
+import Data.Attoparsec.Text (parseOnly, Parser, endOfInput)
 import Data.Text (Text)
 import Test.Hspec
 
@@ -124,7 +125,15 @@ describeCrontab = describe "crontab" $ do
     assertSuccessfulParse "#comment here\nFOO=BAR\n  #another\n* * * * * do stuff"
                           (Crontab [envSet, entry])
 
-  where assertSuccessfulParse = assertParse crontab
+  it "parses crontabs with trailing comments" $
+    assertSuccessfulParse "* * * * * do stuff\n\n  # comment"
+                           (Crontab [entry])
+
+  it "parses crontabs with trailing comments and newlines" $
+    assertSuccessfulParse "* * * * * do stuff\n\n  # comment\n"
+                           (Crontab [entry])
+
+  where assertSuccessfulParse = assertParse (crontab <* endOfInput)
 
 describeCrontabEntry :: Spec
 describeCrontabEntry = describe "crontabEntry" $ do
