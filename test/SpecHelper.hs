@@ -2,15 +2,17 @@
 module SpecHelper (module X) where
 
 import Control.Applicative as X
+import Data.Attoparsec.Text as X
 import Data.DeriveTH
 import Data.Time.Clock as X
 import Data.Time.Calendar as X
 import Data.Time.LocalTime as X
 import Test.Hspec as X
 import Test.Hspec.QuickCheck as X
-import Test.QuickCheck as X
+import Test.QuickCheck as X hiding (Result)
 
 import System.Cron as X
+import System.Cron.Parser as X
 
 import Debug.Trace as X
 

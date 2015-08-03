@@ -230,7 +230,9 @@ fillTo :: Int
 fillTo start finish step
   | step <= 0      = []
   | finish < start = []
-  | otherwise      = [ x | x <- [start..finish], x `mod` step == 0]
+  | otherwise      = takeWhile (<= finish) nums
+  where nums = map (start +) adds
+        adds = map (*2) [0..]
 
 data CronUnit = CMinute     |
                 CHour       |

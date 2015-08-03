@@ -80,6 +80,16 @@ describeScheduleMatches = describe "ScheduleMatches" $ do
     scheduleMatches stars { dayOfWeek = DaysOfWeek (SpecificField 1),
                             dayOfMonth = DaysOfMonth (SpecificField 1) }
                     (UTCTime (fromGregorian 2014 11 1) 600)
+  -- https://github.com/MichaelXavier/cron/issues/18
+  it "correctly schedules steps and ranges" $ do
+    let Right oddMinute = parseOnly cronSchedule "1-59/2 * * * *"
+    let Right evenMinute = parseOnly cronSchedule "0-59/2 * * * *"
+    let t1 = mkTime 2015 7 17 15 17 0
+    let t2 = mkTime 2015 7 17 15 18 0
+    scheduleMatches oddMinute t1 `shouldBe` True
+    scheduleMatches oddMinute t2 `shouldBe` False
+    scheduleMatches evenMinute t1 `shouldBe` False
+    scheduleMatches evenMinute t2 `shouldBe` True
 
   prop "star matches everything" $ \t ->
     scheduleMatches stars t
@@ -151,8 +161,7 @@ stepMax mx n | n < mx    = succ n
 describeCronScheduleShow :: Spec
 describeCronScheduleShow = describe "CronSchedule show" $ do
   it "formats stars" $
-    show stars `shouldBe`
-         "CronSchedule * * * * *"
+    show stars `shouldBe` "CronSchedule * * * * *"
 
   it "formats specific numbers" $
     show stars { dayOfWeek = DaysOfWeek (SpecificField 3)} `shouldBe`
@@ -222,3 +231,8 @@ timeComponents (UTCTime dy dt) = (y, m, d, h, mn)
   where
     (y, m, d) = toGregorian dy
     (h, mn)   = hoursMins dt
+
+
+mkTime y m d hr mn s = UTCTime day time
+  where day = fromGregorian y m d
+        time = s + 60 * mn + 60 * 60 * hr
