@@ -1,20 +1,26 @@
 {-# LANGUAGE TemplateHaskell #-}
-module SpecHelper (module X) where
+module SpecHelper
+    ( module X
+    , isLeft
+    ) where
 
-import Control.Applicative as X
-import Data.Attoparsec.Text as X
-import Data.DeriveTH
-import Data.Time.Clock as X
-import Data.Time.Calendar as X
-import Data.Time.LocalTime as X
-import Test.Hspec as X
-import Test.Hspec.QuickCheck as X
-import Test.QuickCheck as X hiding (Result)
 
-import System.Cron as X
-import System.Cron.Parser as X
+-------------------------------------------------------------------------------
+import           Control.Applicative   as X
+import           Data.Attoparsec.Text  as X
+import           Data.DeriveTH
+import           Data.Time.Calendar    as X
+import           Data.Time.Clock       as X
+import           Data.Time.LocalTime   as X
+import           Debug.Trace           as X
+import           Test.Tasty            as X
+import           Test.Tasty.HUnit      as X
+import           Test.Tasty.QuickCheck as X
+-------------------------------------------------------------------------------
+import           System.Cron           as X
+import           System.Cron.Parser    as X
+-------------------------------------------------------------------------------
 
-import Debug.Trace as X
 
 instance Arbitrary UTCTime where
   arbitrary = do
@@ -29,3 +35,9 @@ $(derive makeArbitrary ''DayOfWeekSpec)
 $(derive makeArbitrary ''DayOfMonthSpec)
 $(derive makeArbitrary ''MonthSpec)
 $(derive makeArbitrary ''CronSchedule)
+
+
+-------------------------------------------------------------------------------
+isLeft :: Either a b -> Bool
+isLeft (Left _) = True
+isLeft _        = False
