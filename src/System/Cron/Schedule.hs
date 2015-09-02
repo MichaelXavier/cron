@@ -69,10 +69,10 @@ readTime' = readTime
 
 {- Scheduleing monad -}
 
-data Job = Job CronSchedule (IO ())
-type Jobs = [Job]
+data Job t = Job (CronSchedule t) (IO ())
+type Jobs t = [Job t]
 
-instance Show Job where
+instance Show (Job t) where
     show (Job c _) = "(Job " ++ show c ++ ")"
 
 data ScheduleError = ParseError String
@@ -80,23 +80,23 @@ data ScheduleError = ParseError String
 
 type Schedule = ScheduleT Identity
 
-newtype ScheduleT m a = ScheduleT { unSchedule :: StateT Jobs (ExceptT ScheduleError m) a }
+newtype ScheduleT m t a = ScheduleT { unSchedule :: StateT (Jobs t) (ExceptT ScheduleError m) a }
         deriving ( Functor, Applicative, Monad
-                 , MonadState Jobs
+                 , MonadState (Jobs t)
                  , MonadError ScheduleError
                  )
 
-runSchedule :: Schedule a -> Either ScheduleError (a, [Job])
+runSchedule :: Schedule t a -> Either ScheduleError (a, [Job t])
 runSchedule = runIdentity . runScheduleT
 
-runScheduleT :: ScheduleT m a -> m (Either ScheduleError (a, [Job]))
+runScheduleT :: ScheduleT m t a -> m (Either ScheduleError (a, [Job t]))
 runScheduleT = runExceptT . flip runStateT [] . unSchedule
 
 class MonadSchedule m where
     addJob ::  IO () -> String -> m ()
 
-instance (Monad m) => MonadSchedule (ScheduleT m) where
-    addJob a t = do s :: Jobs <- get
+instance (Monad m) => MonadSchedule (ScheduleT m t) where
+    addJob a t = do s :: Jobs t <- get
                     case parseOnly cronSchedule (pack t) of
                         Left  e  -> throwError $ ParseError e
                         Right t' -> put $ Job t' a : s
@@ -109,7 +109,7 @@ instance (Monad m) => MonadSchedule (ScheduleT m) where
 -- a new thread. This means that if a job throws an excpetion in IO,
 -- its thread will be killed, but it will continue to be scheduled 
 -- in the future.
-execSchedule :: Schedule () -> IO [ThreadId]
+execSchedule :: CronTime t => Schedule t () -> IO [ThreadId]
 execSchedule s = let res = runSchedule s
                   in case res of
                         Left  e         -> print e >> return []
@@ -119,11 +119,12 @@ execSchedule s = let res = runSchedule s
 -- intervals. Each time it is run, a new thread is forked for it,
 -- meaning that a single exception does not take down the
 -- scheduler.
-forkJob :: Job -> IO ThreadId
+forkJob :: forall t. CronTime t => Job t -> IO ThreadId
 forkJob (Job s a) = forkIO $ forever $ do
             (timeAt, delay) <- findNextMinuteDelay
+            timeAt' <- fromUTC timeAt :: IO t
             threadDelay delay
-            when (scheduleMatches s timeAt) (void $ forkIO a)
+            when (scheduleMatches s timeAt') (void $ forkIO a)
 
 findNextMinuteDelay :: IO (UTCTime, Int)
 findNextMinuteDelay = do

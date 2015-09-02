@@ -227,13 +227,13 @@ describeCrontabEntryShow = testGroup "CrontabEntry Show"
   ]
 
 
-envSet :: CrontabEntry
+envSet :: CrontabEntry UTCTime
 envSet = EnvVariable "FOO" "BAR"
 
-entry :: CrontabEntry
+entry :: CrontabEntry UTCTime
 entry = CommandEntry stars "do stuff"
 
-stars :: CronSchedule
+stars :: CronSchedule UTCTime
 stars = CronSchedule (Minutes Star)
                      (Hours Star)
                      (DaysOfMonth Star)
