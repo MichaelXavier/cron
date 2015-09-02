@@ -60,7 +60,7 @@ test-suite test
                   text                  >= 0.11 && < 2,
                   time                  >= 1.4,
                   transformers-compat   >= 0.4
-  if impl(base < 4.7)
+  if impl(ghc < 7.8)
     Build-Depends: tagged
   Ghc-Options: -threaded -rtsopts -with-rtsopts=-N
 
