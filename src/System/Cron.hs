@@ -29,6 +29,7 @@
 module System.Cron (CronSchedule(..),
                     Crontab(..),
                     CrontabEntry(..),
+                    CronTime (..),
                     MinuteSpec(..),
                     HourSpec(..),
                     MonthSpec(..),
@@ -40,30 +41,32 @@ module System.Cron (CronSchedule(..),
                     daily,
                     weekly,
                     hourly,
-                    everyMinute,
-                    scheduleMatches) where
+                    everyMinute) where
 
 import           Data.List                   (intercalate)
 
 import           Data.Text                   (Text, unpack)
-import           Data.Time.Calendar          (toGregorian)
+import           Data.Time.Calendar          (Day, toGregorian)
 import           Data.Time.Calendar.WeekDate (toWeekDate)
 import           Data.Time.Clock             (UTCTime(..))
-import           Data.Time.LocalTime         (TimeOfDay(..), timeToTimeOfDay)
+import           Data.Time.LocalTime         (LocalTime(..), TimeOfDay(..),
+                                              timeToTimeOfDay,
+                                              utcToLocalZonedTime,
+                                              zonedTimeToLocalTime)
 
 -- | Specification for a cron expression
-data CronSchedule = CronSchedule { minute     :: MinuteSpec,     -- ^ Which minutes to run. First field in a cron specification.
-                                   hour       :: HourSpec,       -- ^ Which hours to run. Second field in a cron specification.
-                                   dayOfMonth :: DayOfMonthSpec, -- ^ Which days of the month to run. Third field in a cron specification.
-                                   month      :: MonthSpec,      -- ^ Which months to run. Fourth field in a cron specification.
-                                   dayOfWeek  :: DayOfWeekSpec   -- ^ Which days of the week to run. Fifth field in a cron specification.
-                                 }
-                                   deriving (Eq)
+data CronSchedule t = CronSchedule { minute     :: MinuteSpec,     -- ^ Which minutes to run. First field in a cron specification.
+                                     hour       :: HourSpec,       -- ^ Which hours to run. Second field in a cron specification.
+                                     dayOfMonth :: DayOfMonthSpec, -- ^ Which days of the month to run. Third field in a cron specification.
+                                     month      :: MonthSpec,      -- ^ Which months to run. Fourth field in a cron specification.
+                                     dayOfWeek  :: DayOfWeekSpec   -- ^ Which days of the week to run. Fifth field in a cron specification.
+                                   }
+                                     deriving (Eq)
 
-instance Show CronSchedule where
+instance Show (CronSchedule t) where
   show cs = "CronSchedule " ++ showRaw cs
 
-showRaw :: CronSchedule
+showRaw :: CronSchedule t
            -> String
 showRaw cs = unwords [show $ minute cs,
                       show $ hour cs,
@@ -72,21 +75,21 @@ showRaw cs = unwords [show $ minute cs,
                       show $ dayOfWeek cs]
 
 -- | Crontab file, omitting comments.
-newtype Crontab = Crontab [CrontabEntry]
-                  deriving (Eq)
+newtype Crontab t = Crontab [CrontabEntry t]
+                    deriving (Eq)
 
-instance Show Crontab where
+instance Show (Crontab t) where
   show (Crontab entries) = intercalate "\n" . map show $ entries
 
 -- | Essentially a line in a crontab file. It is either a schedule with a
 -- command after it or setting an environment variable (e.g. FOO=BAR)
-data CrontabEntry = CommandEntry { schedule :: CronSchedule,
-                                   command  :: Text} |
-                    EnvVariable  { varName  :: Text,
-                                   varValue :: Text }
-                    deriving (Eq)
+data CrontabEntry t = CommandEntry { schedule :: CronSchedule t,
+                                     command  :: Text} |
+                      EnvVariable  { varName  :: Text,
+                                     varValue :: Text }
+                      deriving (Eq)
 
-instance Show CrontabEntry where
+instance Show (CrontabEntry t) where
   show CommandEntry { schedule = s, command = c} = showRaw s ++ " " ++ unpack c
   show EnvVariable  { varName = n, varValue = v} = unpack n ++ "=" ++ unpack v
 
@@ -142,52 +145,68 @@ instance Show CronField where
 
 
 -- | Shorthand for every January 1st at midnight. Parsed with \@yearly, 0 0 1 1 *
-yearly :: CronSchedule
+yearly :: CronSchedule t
 yearly = monthly { month = Months $ SpecificField 1 }
 
 -- | Shorthand for every 1st of the month at midnight. Parsed with \@monthly, 0 0 1 * *
-monthly :: CronSchedule
+monthly :: CronSchedule t
 monthly = daily { dayOfMonth = DaysOfMonth $ SpecificField 1 }
 
 -- | Shorthand for every sunday at midnight. Parsed with \@weekly, 0 0 * * 0
-weekly :: CronSchedule
+weekly :: CronSchedule t
 weekly = daily { dayOfWeek = DaysOfWeek $ SpecificField 0 }
 
 -- | Shorthand for every day at midnight. Parsed with \@daily, 0 0 * * *
-daily :: CronSchedule
+daily :: CronSchedule t
 daily = hourly { hour = Hours $ SpecificField 0 }
 
 -- | Shorthand for every hour on the hour. Parsed with \@hourly, 0 * * * *
-hourly :: CronSchedule
+hourly :: CronSchedule t
 hourly = everyMinute { minute = Minutes $ SpecificField 0 }
 
 -- | Shorthand for an expression that always matches. Parsed with * * * * *
-everyMinute :: CronSchedule
+everyMinute :: CronSchedule t
 everyMinute = CronSchedule { minute     = Minutes Star,
                              hour       = Hours Star,
                              dayOfMonth = DaysOfMonth Star,
                              month      = Months Star,
                              dayOfWeek  = DaysOfWeek Star}
 
--- | Determines if the given time is matched by the given schedule. A
--- periodical task would use this to determine if an action needs to be
--- performed at the current time or not.
-scheduleMatches :: CronSchedule
-                   -> UTCTime
-                   -> Bool
-scheduleMatches CronSchedule { minute     = Minutes mins,
-                               hour       = Hours hrs,
-                               dayOfMonth = DaysOfMonth doms,
-                               month      = Months months,
-                               dayOfWeek  = DaysOfWeek dows }
-                UTCTime { utctDay = uDay,
-                          utctDayTime = uTime } = if restricted doms && restricted dows
-                                                  then mnv && hrv && mthv && (domv || dowv)
-                                                  else mnv && hrv && mthv && domv && dowv
+class CronTime t where
+  -- | Determines if the given time is matched by the given schedule. A
+  -- periodical task would use this to determine if an action needs to be
+  -- performed at the current time or not.
+  scheduleMatches :: CronSchedule t -> t -> Bool
+  fromUTC :: UTCTime -> IO t
+
+
+instance CronTime UTCTime where
+  scheduleMatches sched t
+    = scheduleMatchesDayTime sched (utctDay t) (timeToTimeOfDay (utctDayTime t))
+  fromUTC = return
+
+instance CronTime LocalTime where
+  scheduleMatches sched t
+    = scheduleMatchesDayTime sched (localDay t) (localTimeOfDay t)
+  fromUTC = fmap zonedTimeToLocalTime . utcToLocalZonedTime
+
+
+scheduleMatchesDayTime :: CronSchedule t -> Day -> TimeOfDay -> Bool
+scheduleMatchesDayTime
+  CronSchedule { minute     = Minutes mins,
+                 hour       = Hours hrs,
+                 dayOfMonth = DaysOfMonth doms,
+                 month      = Months months,
+                 dayOfWeek  = DaysOfWeek dows }
+  uDay
+  uTod
+  = if restricted doms && restricted dows
+        then mnv && hrv && mthv && (domv || dowv)
+        else mnv && hrv && mthv && domv && dowv
   where (_, mth, dom) = toGregorian uDay
         (_, _, dow) = toWeekDate uDay
         TimeOfDay { todHour = hr,
-                    todMin  = mn} = timeToTimeOfDay uTime
+                    todMin  = mn} = uTod
         [mnv,hrv,domv,mthv,dowv] = map validate [(mn, CMinute, mins),
                                                  (hr, CHour, hrs),
                                                  (dom, CDayOfMonth, doms),
@@ -199,6 +218,7 @@ scheduleMatches CronSchedule { minute     = Minutes mins,
         restricted (RangeField _ _) = True
         restricted (ListField _) = True
         restricted (StepField f _) = restricted f
+
 
 matchField :: Int
               -> CronUnit

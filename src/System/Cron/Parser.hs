@@ -44,11 +44,11 @@ import           Data.Text (Text)
 -- parser will fail if there is extraneous input. This is to prevent things
 -- like extra fields. If you want a more lax parser, use 'cronScheduleLoose',
 -- which is fine with extra input.
-cronSchedule :: Parser CronSchedule
+cronSchedule :: Parser (CronSchedule t)
 cronSchedule = cronScheduleLoose <* A.endOfInput
 
 -- | Same as 'cronSchedule' but does not fail on extraneous input.
-cronScheduleLoose :: Parser CronSchedule
+cronScheduleLoose :: Parser (CronSchedule t)
 cronScheduleLoose = yearlyP  <|>
                     monthlyP <|>
                     weeklyP  <|>
@@ -58,14 +58,14 @@ cronScheduleLoose = yearlyP  <|>
 
 -- | Parses a full crontab file, omitting comments and including environment
 -- variable sets (e.g FOO=BAR).
-crontab :: Parser Crontab
+crontab :: Parser (Crontab t)
 crontab = Crontab <$> A.sepBy lineP (A.char '\n')
   where lineP    = A.skipMany commentP *> crontabEntry
         commentP = A.skipSpace *> A.char '#' *> skipToEOL
 
 -- | Parses an individual crontab line, which is either a scheduled command or
 -- an environmental variable set.
-crontabEntry :: Parser CrontabEntry
+crontabEntry :: Parser (CrontabEntry t)
 crontabEntry = A.skipSpace *> parser
   where parser = envVariableP <|>
                  commandEntryP
@@ -86,7 +86,7 @@ takeToEOL = A.takeTill (== '\n') -- <* A.skip (== '\n')
 skipToEOL :: Parser ()
 skipToEOL = A.skipWhile (/= '\n')
 
-classicP :: Parser CronSchedule
+classicP :: Parser (CronSchedule t)
 classicP = CronSchedule <$> (minutesP    <* space)
                         <*> (hoursP      <* space)
                         <*> (dayOfMonthP <* space)
@@ -124,19 +124,19 @@ cronFieldP = steppedP  <|>
                         specificP
         specificP     = SpecificField <$> parseInt
 
-yearlyP :: Parser CronSchedule
+yearlyP :: Parser (CronSchedule t)
 yearlyP  = A.string "@yearly"  *> pure yearly
 
-monthlyP :: Parser CronSchedule
+monthlyP :: Parser (CronSchedule t)
 monthlyP = A.string "@monthly" *> pure monthly
 
-weeklyP :: Parser CronSchedule
+weeklyP :: Parser (CronSchedule t)
 weeklyP  = A.string "@weekly"  *> pure weekly
 
-dailyP :: Parser CronSchedule
+dailyP :: Parser (CronSchedule t)
 dailyP   = A.string "@daily"   *> pure daily
 
-hourlyP :: Parser CronSchedule
+hourlyP :: Parser (CronSchedule t)
 hourlyP  = A.string "@hourly"  *> pure hourly
 
 
