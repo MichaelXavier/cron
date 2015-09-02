@@ -1,9 +1,11 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 module System.Test.Cron.Schedule
     ( tests
     ) where
 
 -------------------------------------------------------------------------------
 import           Control.Concurrent
+import           Data.Proxy (Proxy(..))
 -------------------------------------------------------------------------------
 import           SpecHelper
 import           System.Cron.Schedule
@@ -38,13 +40,17 @@ describeMonadSchedule = testGroup "MonadSchedule"
 describeExecSchedule :: TestTree
 describeExecSchedule = testGroup "execSchedule"
   [
-     testCase "should set an mvar each minute" $
-       fireAndWait >>= (@?= "dost thou even hoist")
+     testCase "should set an mvar each minute (UTCTime)" $
+       fireAndWait (Proxy :: Proxy UTCTime) >>= (@?= "dost thou even hoist")
+   , testCase "should set an mvar each minute (LocalTime)" $
+       fireAndWait (Proxy :: Proxy LocalTime) >>= (@?= "dost thou even hoist")
   ]
-    where fireAndWait = do
+    where
+      fireAndWait :: forall t. CronTime t => Proxy t -> IO String
+      fireAndWait _ = do
             v    <- newEmptyMVar
             tids <- execSchedule $ do
-                (addJob (flipMVar v) "* * * * *" :: Schedule UTCTime ())
+                (addJob (flipMVar v) "* * * * *" :: Schedule t ())
             threadDelay (1000000 * 60)
             mapM_ killThread tids
             takeMVar v
