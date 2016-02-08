@@ -17,14 +17,13 @@
 -- > import System.Cron
 -- >
 -- > main :: IO ()
--- > main = do
--- >   forever do
--- >     now <- getCurrentTime
--- >     when (scheduleMatches schedule now) doWork
--- >     putStrLn "sleeping"
--- >     threadDelay 100000
--- >   where doWork   = putStrLn "Time to work"
--- >         schedule = hourly
+-- > main = forever $ do
+-- >          now <- getCurrentTime
+-- >          when (scheduleMatches schedule now) doWork
+-- >          putStrLn "sleeping"
+-- >          threadDelay 100000
+-- >        where doWork   = putStrLn "Time to work"
+-- >              schedule = hourly
 --
 --------------------------------------------------------------------
 module System.Cron (CronSchedule(..),
@@ -142,8 +141,8 @@ instance Show BaseField where
   show (RangeField x y)      = show x ++ "-" ++ show y
 
 data CronField = Field BaseField                |
-                 ListField (NonEmpty BaseField) | -- ^ Matches a list of expressions. Recursive lists are invalid and the parser will never produce them.
-                 StepField BaseField Int          -- ^ Matches a stepped expression, e.g. (*/2). Recursive steps or stepped lists are invalid and the parser will never produce them.
+                 ListField (NonEmpty BaseField) | -- ^ Matches a list of expressions.
+                 StepField BaseField Int          -- ^ Matches a stepped expression, e.g. (*/2).
                  deriving (Eq)
 
 instance Show CronField where
@@ -192,17 +191,25 @@ scheduleMatches CronSchedule { minute     = Minutes mins,
                                month      = Months months,
                                dayOfWeek  = DaysOfWeek dows }
                 UTCTime { utctDay = uDay,
-                          utctDayTime = uTime } = and validations
+                          utctDayTime = uTime } = if restricted doms && restricted dows
+                                                  then mnv && hrv && mthv && (domv || dowv)
+                                                  else mnv && hrv && mthv && domv && dowv
   where (_, mth, dom) = toGregorian uDay
         (_, _, dow) = toWeekDate uDay
         TimeOfDay { todHour = hr,
                     todMin  = mn} = timeToTimeOfDay uTime
-        validations = map validate [(mn, CMinute, mins),
-                                    (hr, CHour, hrs),
-                                    (dom, CDayOfMonth, doms),
-                                    (mth, CMonth, months),
-                                    (dow, CDayOfWeek, dows)]
+        [mnv,hrv,domv,mthv,dowv] = map validate [(mn, CMinute, mins),
+                                                 (hr, CHour, hrs),
+                                                 (dom, CDayOfMonth, doms),
+                                                 (mth, CMonth, months),
+                                                 (dow, CDayOfWeek, dows)]
         validate (x, y, z) = matchField x y z
+        --TODO: rename
+        restricted (Field Star)              = False
+        restricted (Field (SpecificField _)) = True
+        restricted (Field (RangeField _ _))  = True
+        restricted (ListField _)             = True
+        restricted (StepField f _)           = restricted (Field f)
 
 nextMatch :: CronSchedule -> UTCTime -> Maybe UTCTime
 nextMatch = undefined
@@ -244,7 +251,9 @@ fillTo :: Int
 fillTo start finish step
   | step <= 0      = []
   | finish < start = []
-  | otherwise      = [ x | x <- [start..finish], x `mod` step == 0]
+  | otherwise      = takeWhile (<= finish) nums
+  where nums = map (start +) adds
+        adds = map (*2) [0..]
 
 data CronUnit = CMinute     |
                 CHour       |

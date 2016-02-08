@@ -1,2 +1,20 @@
+# 0.3.2
+* Add test files to dist
+# 0.3.1
+* Fix bug that caused some range schedules to not fire at the correct time. See https://github.com/MichaelXavier/cron/issues/18
+# 0.3.0
+* MTL compatibility updates.
+# 0.2.6
+* Package test files
+# 0.2.5
+* GHC 7.10 support
+# 0.2.4
+* Bugfixes for new task runner feature
+# 0.2.3
+* Add new in-process task runner feature. Credit to @AndrewRademacher
+# 0.2.2
+* Fix edge case when day of month and day of week are both specified. Credit to @joelwilliamson
+# 0.2.1
+* Fix day of week bug. Credit to @meteogrid
 # 0.1.2
 * Relax dependency on text to allow 1.0

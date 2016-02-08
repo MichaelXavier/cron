@@ -1,6 +1,9 @@
+cabal.sandbox.config
+.cabal-sandbox/
 dist
 cabal-dev
 *.o
 *.hi
 *.chi
 *.chs.h
+.stack-work/

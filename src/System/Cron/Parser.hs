@@ -25,16 +25,14 @@ module System.Cron.Parser (cronSchedule,
                            crontab,
                            crontabEntry) where
 
-import           System.Cron
-
-import           Control.Applicative  (pure, (*>), (<$>), (<*), (<*>), (<|>))
-import           Data.Char (isSpace)
-import           Data.List.NonEmpty (NonEmpty(..))
+import           Control.Applicative  as Ap
 import           Data.Attoparsec.Text (Parser)
 import qualified Data.Attoparsec.Text as A
-import           Data.Text (Text)
+import           Data.Char            (isSpace)
+import           Data.List.NonEmpty   (NonEmpty (..))
+import           Data.Text            (Text)
+import           System.Cron
 
-import Debug.Trace
 
 -- | Attoparsec Parser for a cron schedule. Complies fully with the standard
 -- cron format.  Also includes the following shorthand formats which cron also
@@ -113,7 +111,7 @@ baseFieldP :: Parser BaseField
 baseFieldP = rangeP <|>
              starP  <|>
              specificP
-  where starP         = A.char '*' *> pure Star
+  where starP         = A.char '*' *> Ap.pure Star
         rangeP        = do start <- parseInt
                            _     <- A.char '-'
                            end   <- parseInt

@@ -1,5 +1,5 @@
 Name:                cron
-Version:             0.2.1
+Version:             0.3.2
 Description:
   Cron data structure and Attoparsec parser. The idea is to embed it in larger
   systems which want to roll their own scheduled tasks in a format that people
@@ -21,44 +21,83 @@ Maintainer:          Michael Xavier <michael@michaelxavier.net>
 Build-Type:          Simple
 Stability:           experimental
 Tested-With:         GHC == 7.4.1
+                   , GHC == 7.6.3
+                   , GHC == 7.8.3
+                   , GHC == 7.10.1
 Cabal-Version:       >= 1.8
 Extra-Source-Files:
   README.md
   LICENSE
   changelog
-  test/Spec.hs
-  test/System/Cron/ParserSpec.hs
-  test/System/CronSpec.hs
+  test/Main.hs
+  test/SpecHelper.hs
+  test/System/Test/Cron.hs
+  test/System/Test/Cron/Parser.hs
+  test/System/Test/Cron/Schedule.hs
 Homepage:           http://github.com/michaelxavier/cron
 Bug-Reports:        http://github.com/michaelxavier/cron/issues
 
+flag lib-Werror
+  default: False
+  manual: True
+
 library
- Exposed-modules: System.Cron,
-                  System.Cron.Parser
- Ghc-Options:     -Wall
- Hs-source-dirs:  src
- build-depends:   base            >= 4 && < 5,
-                  attoparsec      >= 0.10,
-                  text            >= 0.11 && < 2,
-                  time            >= 1.4,
+  Exposed-modules: System.Cron,
+                   System.Cron.Parser,
+                   System.Cron.Schedule
+  Hs-source-dirs:  src
+  build-depends:   base            >= 4 && < 5,
+                   attoparsec      >= 0.10,
+                   text            >= 0.11 && < 2,
+                   time            >= 1.4,
+                   old-locale      >= 1.0,
+                   mtl             >= 2.0.1,
+                   mtl-compat      >= 0.2.1,
+                   semigroups
+  if flag(lib-Werror)
+    ghc-options: -Werror
+
+  ghc-options: -Wall
+
+
+test-suite test
+  Type:           exitcode-stdio-1.0
+  Main-Is:        Main.hs
+  Hs-Source-Dirs: test
+  Build-Depends:  base,
+                  cron,
+                  tasty,
+                  tasty-hunit,
+                  tasty-quickcheck,
+                  derive,
+                  attoparsec,
+                  text,
+                  time,
+                  transformers-compat,
                   semigroups
 
-test-suite spec
-  Type:           exitcode-stdio-1.0
-  Main-Is:        Spec.hs
-  Hs-Source-Dirs: test
-  Build-Depends:  base >= 4 && < 5,
-                  cron,
-                  hspec == 1.3.*,
-                  QuickCheck,
-                  derive,
-                  lens-datetime,
-                  lens,
-                  hspec-expectations,
-                  attoparsec      >= 0.10,
-                  text            >= 0.11 && < 2,
-                  time            >= 1.4,
-                  semigroups
+  if flag(lib-Werror)
+    ghc-options: -Werror
+
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+
+
+benchmark bench
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs: bench
+  default-language:    Haskell2010
+  build-depends:
+      base
+    , cron
+    , criterion
+    , text
+    , attoparsec
+
+  if flag(lib-Werror)
+    ghc-options: -Werror
+
+  ghc-options: -Wall
 
 source-repository head
   Type:     git
