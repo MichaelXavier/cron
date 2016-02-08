@@ -57,6 +57,18 @@ instance Arbitrary DayOfWeekSpec where
   arbitrary = arbitraryMaybe mkDayOfWeekSpec
 
 
+instance Arbitrary SpecificField where
+  arbitrary = arbitraryMaybe mkSpecificField
+
+
+instance Arbitrary RangeField where
+  arbitrary = arbitraryMaybe (uncurry mkRangeField)
+
+
+instance Arbitrary StepField where
+  arbitrary = arbitraryMaybe (uncurry mkStepField)
+
+
 arbitraryMaybe :: Arbitrary a => (a -> Maybe b) -> Gen b
 arbitraryMaybe f = do
   a <- arbitrary `suchThat` (isJust . f)
@@ -81,6 +93,19 @@ mkMonthSpec' = fromJust . mkMonthSpec
 
 mkDayOfWeekSpec' :: CronField -> DayOfWeekSpec
 mkDayOfWeekSpec' = fromJust . mkDayOfWeekSpec
+
+
+mkRangeField' :: Int -> Int -> RangeField
+mkRangeField' a = fromJust . mkRangeField a
+
+
+mkSpecificField' :: Int -> SpecificField
+mkSpecificField' = fromJust . mkSpecificField
+
+
+mkStepField' :: BaseField -> Int -> StepField
+mkStepField' a = fromJust . mkStepField a
+
 
 -------------------------------------------------------------------------------
 isLeft :: Either a b -> Bool

@@ -30,7 +30,6 @@ import           Data.Attoparsec.Text (Parser)
 import qualified Data.Attoparsec.Text as A
 import           Data.Char            (isSpace)
 import           Data.List.NonEmpty   (NonEmpty (..))
-import           Data.Monoid
 import           Data.Text            (Text)
 import           System.Cron
 
@@ -99,7 +98,15 @@ cronFieldP = stepP  <|>
   where
     fieldP        = Field <$> baseFieldP
     listP         = ListField <$> neListP baseFieldP
-    stepP         = StepField <$> baseFieldP <*> (A.char '/' *> parseInt)
+    stepP         = StepField' <$> stepFieldP
+
+
+stepFieldP :: Parser StepField
+stepFieldP = do
+  f <- baseFieldP
+  _ <- A.char '/'
+  mParse (mkStepField f) "invalid stepping" =<< parseInt
+
 
 neListP :: Parser a -> Parser (NonEmpty a)
 neListP p = coerceNE =<< A.sepBy1 p (A.char ',')
@@ -113,14 +120,23 @@ baseFieldP = rangeP <|>
              starP  <|>
              specificP
   where starP         = A.char '*' *> Ap.pure Star
-        rangeP        = do start <- parseInt
-                           _     <- A.char '-'
-                           end   <- parseInt
-                           if start <= end
-                             then return $ RangeField start end
-                             else rangeInvalid
-        rangeInvalid  = fail "start of range must be less than or equal to end"
-        specificP     = SpecificField <$> parseInt
+        rangeP        = RangeField' <$> rangeFieldP
+        specificP     = SpecificField' <$> specificFieldP
+
+
+specificFieldP :: Parser SpecificField
+specificFieldP =
+  mParse mkSpecificField "specific field value out of range" =<< parseInt
+
+rangeFieldP :: Parser RangeField
+rangeFieldP = do
+  begin <- parseInt
+
+
+  _ <- A.char '-'
+  end <- parseInt
+  mParse (mkRangeField begin) "start of range must be less than or equal to end" end
+
 
 yearlyP :: Parser CronSchedule
 yearlyP  = A.string "@yearly"  *> pure yearly
@@ -139,24 +155,22 @@ hourlyP  = A.string "@hourly"  *> pure hourly
 
 --TODO: must handle a combination of many of these. EITHER just *, OR a list of
 minutesP :: Parser MinuteSpec
-minutesP = mParse mkMinuteSpec "minutes" =<< cronFieldP
+minutesP = mParse mkMinuteSpec "minutes out of range" =<< cronFieldP
 
 hoursP :: Parser HourSpec
-hoursP = mParse mkHourSpec "hours" =<< cronFieldP
+hoursP = mParse mkHourSpec "hours out of range" =<< cronFieldP
 
 dayOfMonthP :: Parser DayOfMonthSpec
-dayOfMonthP = mParse mkDayOfMonthSpec "day of month" =<< cronFieldP
+dayOfMonthP = mParse mkDayOfMonthSpec "day of month out of range" =<< cronFieldP
 
 monthP :: Parser MonthSpec
-monthP = mParse mkMonthSpec "month" =<< cronFieldP
+monthP = mParse mkMonthSpec "month out of range" =<< cronFieldP
 
 dayOfWeekP :: Parser DayOfWeekSpec
-dayOfWeekP = mParse mkDayOfWeekSpec "day of week" =<< cronFieldP
+dayOfWeekP = mParse mkDayOfWeekSpec "day of week out of range" =<< cronFieldP
 
 parseInt :: Parser Int
 parseInt = A.decimal
 
 mParse :: (Monad m) => (a -> Maybe b) -> String -> a -> m b
-mParse f ty = maybe (fail msg) return . f
-  where
-    msg = ty <> " out of range"
+mParse f msg = maybe (fail msg) return . f

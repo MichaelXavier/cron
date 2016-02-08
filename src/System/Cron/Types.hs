@@ -19,7 +19,18 @@ module System.Cron.Types
       dayOfWeekSpec,
       mkDayOfWeekSpec,
       BaseField(..),
-      CronField(..)
+      SpecificField,
+      specificField,
+      mkSpecificField,
+      RangeField,
+      rfBegin,
+      rfEnd,
+      mkRangeField,
+      CronField(..),
+      StepField,
+      sfField,
+      sfStepping,
+      mkStepField
     ) where
 
 
@@ -143,7 +154,7 @@ validCF
     -> Bool
 validCF (Field bf) mn mx          = validBF bf mn mx
 validCF (ListField bfs) mn mx     = FT.all (\bf -> validBF bf mn mx) bfs
-validCF (StepField bf step) mn mx = validBF bf mn mx && inRange (mn, mx) step
+validCF (StepField' (StepField bf step)) mn mx = validBF bf mn mx && inRange (mn, mx) step
 
 validBF
     :: BaseField
@@ -152,28 +163,77 @@ validBF
     -> Int
     -- ^ Max value
     -> Bool
-validBF Star _ _                 = True
-validBF (SpecificField n) mn mx  = inRange (mn, mx) n
-validBF (RangeField n1 n2) mn mx = inRange (mn, mx) n1 && inRange (mn, mx) n2
+validBF Star _ _ = True
+validBF (SpecificField' (SpecificField n)) mn mx =
+  inRange (mn, mx) n
+validBF (RangeField' (RangeField n1 n2)) mn mx =
+  inRange (mn, mx) n1 && inRange (mn, mx) n2
 
 
 -- | Individual field of a cron expression.
-data BaseField = Star              | -- ^ Matches anything
-                 SpecificField Int | -- ^ Matches a specific value (e.g. 1)
-                 RangeField Int Int  -- ^ Matches a range of values (e.g. 1-3)
+data BaseField = Star                         | -- ^ Matches anything
+                 SpecificField' SpecificField | -- ^ Matches a specific value (e.g. 1)
+                 RangeField' RangeField         -- ^ Matches a range of values (e.g. 1-3)
                deriving (Eq)
+
+
+
+
+newtype SpecificField = SpecificField {
+      specificField :: Int
+    } deriving (Eq)
+
+
+instance Show SpecificField where
+  show (SpecificField i) = show i
+
+mkSpecificField :: Int -> Maybe SpecificField
+mkSpecificField n
+  | n >= 0 = Just (SpecificField n)
+  | otherwise = Nothing
+
+
+data RangeField = RangeField {
+      rfBegin :: Int
+    , rfEnd   :: Int
+    } deriving (Eq)
+
+
+instance Show RangeField where
+  show (RangeField x y) = show x ++ "-" ++ show y
+
+
+mkRangeField :: Int -> Int -> Maybe RangeField
+mkRangeField x y
+  | x <= y    = Just (RangeField x y)
+  | otherwise = Nothing
+
 
 instance Show BaseField where
   show Star                  = "*"
-  show (SpecificField i)     = show i
-  show (RangeField x y)      = show x ++ "-" ++ show y
+  show (SpecificField' f)     = show f
+  show (RangeField' rf)      = show rf
 
 data CronField = Field BaseField                |
                  ListField (NonEmpty BaseField) | -- ^ Matches a list of expressions.
-                 StepField BaseField Int          -- ^ Matches a stepped expression, e.g. (*/2).
+                 StepField' StepField          -- ^ Matches a stepped expression, e.g. (*/2).
                  deriving (Eq)
 
-instance Show CronField where
-  show (Field f)             = show f
-  show (ListField xs)        = intercalate "," . NE.toList . NE.map show $ xs
+
+data StepField = StepField { sfField    :: BaseField
+                           , sfStepping :: Int
+                           } deriving (Eq)
+
+
+instance Show StepField where
   show (StepField f step) = show f ++ "/" ++ show step
+
+mkStepField :: BaseField -> Int -> Maybe StepField
+mkStepField bf n
+  | n > 0     = Just (StepField bf n)
+  | otherwise = Nothing
+
+instance Show CronField where
+  show (Field f)       = show f
+  show (ListField xs)  = intercalate "," . NE.toList . NE.map show $ xs
+  show (StepField' sf) = show sf

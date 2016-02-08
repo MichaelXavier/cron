@@ -38,6 +38,7 @@ module System.Cron (module System.Cron.Types,
                     nextMatch) where
 
 
+import           Data.Ix
 import qualified Data.List.NonEmpty          as NE
 import           Data.Maybe
 import           Data.Time.Calendar
@@ -52,23 +53,23 @@ import           System.Cron.Types
 
 -- | Shorthand for every January 1st at midnight. Parsed with \@yearly, 0 0 1 1 *
 yearly :: CronSchedule
-yearly = monthly { month = fromJust . mkMonthSpec . Field . SpecificField $ 1 }
+yearly = monthly { month = fromJust . mkMonthSpec . Field . SpecificField' . fromJust . mkSpecificField $ 1 }
 
 -- | Shorthand for every 1st of the month at midnight. Parsed with \@monthly, 0 0 1 * *
 monthly :: CronSchedule
-monthly = daily { dayOfMonth = fromJust . mkDayOfMonthSpec . Field . SpecificField $ 1 }
+monthly = daily { dayOfMonth = fromJust . mkDayOfMonthSpec . Field . SpecificField' . fromJust . mkSpecificField $ 1 }
 
 -- | Shorthand for every sunday at midnight. Parsed with \@weekly, 0 0 * * 0
 weekly :: CronSchedule
-weekly = daily { dayOfWeek = fromJust . mkDayOfWeekSpec . Field . SpecificField $ 0 }
+weekly = daily { dayOfWeek = fromJust . mkDayOfWeekSpec . Field . SpecificField' . fromJust . mkSpecificField $ 0 }
 
 -- | Shorthand for every day at midnight. Parsed with \@daily, 0 0 * * *
 daily :: CronSchedule
-daily = hourly { hour = fromJust . mkHourSpec . Field . SpecificField $ 0 }
+daily = hourly { hour = fromJust . mkHourSpec . Field . SpecificField' . fromJust . mkSpecificField $ 0 }
 
 -- | Shorthand for every hour on the hour. Parsed with \@hourly, 0 * * * *
 hourly :: CronSchedule
-hourly = everyMinute { minute = fromJust . mkMinuteSpec . Field . SpecificField $ 0 }
+hourly = everyMinute { minute = fromJust . mkMinuteSpec . Field . SpecificField' . fromJust . mkSpecificField $ 0 }
 
 -- | Shorthand for an expression that always matches. Parsed with * * * * *
 everyMinute :: CronSchedule
@@ -104,12 +105,11 @@ scheduleMatches CronSchedule {..}
                                                  (mth, CMonth, months),
                                                  (dow, CDayOfWeek, dows)]
         validate (x, y, z) = matchField x y z
-        --TODO: rename
-        restricted (Field Star)              = False
-        restricted (Field (SpecificField _)) = True
-        restricted (Field (RangeField _ _))  = True
-        restricted (ListField _)             = True
-        restricted (StepField f _)           = restricted (Field f)
+        restricted (Field Star)               = False
+        restricted (Field (SpecificField' _)) = True
+        restricted (Field (RangeField' _))    = True
+        restricted (ListField _)              = True
+        restricted (StepField' sf)            = restricted (Field (sfField sf))
 
 nextMatch :: CronSchedule -> UTCTime -> UTCTime
 nextMatch cs t = head (filter (scheduleMatches cs) (take 1000 $ nextMinutes t)) --TODO: drop take. could actually use a take of 1 year
@@ -136,20 +136,28 @@ matchField :: Int
               -> CronUnit
               -> CronField
               -> Bool
-matchField x unit (Field f)          = matchField' x unit f
-matchField x unit (ListField fs)     = any (matchField' x unit) . NE.toList $ fs
-matchField x unit (StepField f step) = elem x $ expandDivided f step unit
+matchField x unit (Field f)       = matchField' x unit f
+matchField x unit (ListField fs)  = any (matchField' x unit) . NE.toList $ fs
+matchField x unit (StepField' sf) = elem x $ expandDivided f step unit
+  where
+    f = sfField sf
+    step = sfStepping sf
 
 matchField' :: Int
                -> CronUnit
                -> BaseField
                -> Bool
 matchField' _ _ Star                        = True
-matchField' x CDayOfWeek (SpecificField y)
+matchField' x CDayOfWeek (SpecificField' sf)
   | x == y || x == 0 && y == 7 || x == 7 && y == 0 = True
   | otherwise                                      = False
-matchField' x _ (SpecificField y)         = x == y
-matchField' x _ (RangeField y y')         = x >= y && x <= y'
+  where
+    y = specificField sf
+matchField' x _ (SpecificField' sf) = x == specificField sf
+matchField' x _ (RangeField' rf) = inRange (y, y') x
+  where
+    y = rfBegin rf
+    y' = rfEnd rf
 
 expandDivided :: BaseField
                  -> Int
@@ -157,14 +165,17 @@ expandDivided :: BaseField
                  -> [Int]
 expandDivided Star step unit                      = fillTo 0 max' step
   where max' = maxValue unit
-expandDivided (RangeField start finish) step unit = fillTo start finish' step
-  where finish' = minimum [finish, maxValue unit]
+expandDivided (RangeField' rf) step unit = fillTo start finish' step
+  where
+    finish' = minimum [finish, maxValue unit]
+    start = rfBegin rf
+    finish = rfEnd rf
 expandDivided _ _ _                               = [] -- invalid
 
 fillTo :: Int
-          -> Int
-          -> Int
-          -> [Int]
+       -> Int
+       -> Int
+       -> [Int]
 fillTo start finish step
   | step <= 0      = []
   | finish < start = []
