@@ -2,15 +2,16 @@
 {-# LANGUAGE TemplateHaskell #-}
 module SpecHelper
     ( module X
-    , isLeft
+    , module SpecHelper
     ) where
 
 
 -------------------------------------------------------------------------------
 import           Control.Applicative   as X
-import           Data.Attoparsec.Text  as X
+import           Data.Attoparsec.Text  as X (Parser, parseOnly)
 import           Data.DeriveTH
 import           Data.List.NonEmpty    (NonEmpty (..))
+import           Data.Maybe
 import           Data.Time.Calendar    as X
 import           Data.Time.Clock       as X
 import           Data.Time.LocalTime   as X
@@ -33,13 +34,53 @@ instance Arbitrary UTCTime where
 $(derive makeArbitrary ''NonEmpty)
 $(derive makeArbitrary ''BaseField)
 $(derive makeArbitrary ''CronField)
-$(derive makeArbitrary ''MinuteSpec)
-$(derive makeArbitrary ''HourSpec)
-$(derive makeArbitrary ''DayOfWeekSpec)
-$(derive makeArbitrary ''DayOfMonthSpec)
-$(derive makeArbitrary ''MonthSpec)
 $(derive makeArbitrary ''CronSchedule)
 
+
+instance Arbitrary MinuteSpec where
+  arbitrary = arbitraryMaybe mkMinuteSpec
+
+
+instance Arbitrary HourSpec where
+  arbitrary = arbitraryMaybe mkHourSpec
+
+
+instance Arbitrary DayOfMonthSpec where
+  arbitrary = arbitraryMaybe mkDayOfMonthSpec
+
+
+instance Arbitrary MonthSpec where
+  arbitrary = arbitraryMaybe mkMonthSpec
+
+
+instance Arbitrary DayOfWeekSpec where
+  arbitrary = arbitraryMaybe mkDayOfWeekSpec
+
+
+arbitraryMaybe :: Arbitrary a => (a -> Maybe b) -> Gen b
+arbitraryMaybe f = do
+  a <- arbitrary `suchThat` (isJust . f)
+  return (fromJust (f a))
+
+
+mkMinuteSpec' :: CronField -> MinuteSpec
+mkMinuteSpec' = fromJust . mkMinuteSpec
+
+
+mkHourSpec' :: CronField -> HourSpec
+mkHourSpec' = fromJust . mkHourSpec
+
+
+mkDayOfMonthSpec' :: CronField -> DayOfMonthSpec
+mkDayOfMonthSpec' = fromJust . mkDayOfMonthSpec
+
+
+mkMonthSpec' :: CronField -> MonthSpec
+mkMonthSpec' = fromJust . mkMonthSpec
+
+
+mkDayOfWeekSpec' :: CronField -> DayOfWeekSpec
+mkDayOfWeekSpec' = fromJust . mkDayOfWeekSpec
 
 -------------------------------------------------------------------------------
 isLeft :: Either a b -> Bool

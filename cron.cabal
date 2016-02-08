@@ -45,6 +45,7 @@ library
   Exposed-modules: System.Cron,
                    System.Cron.Parser,
                    System.Cron.Schedule
+  other-modules:   System.Cron.Types
   Hs-source-dirs:  src
   build-depends:   base            >= 4 && < 5,
                    attoparsec      >= 0.10,

@@ -14,9 +14,10 @@ tests = testGroup "System.Cron"
   , describeCronScheduleShow
   , describeCrontabEntryShow
   , describeCrontabShow
+  , describeNextMatch
   ]
 
----- Specs
+
 describeScheduleMatches :: TestTree
 describeScheduleMatches = testGroup "ScheduleMatches"
   [
@@ -24,53 +25,53 @@ describeScheduleMatches = testGroup "ScheduleMatches"
       scheduleMatches stars (day 5 25 1 2) @?= True
 
     , testCase "matches a specific field" $
-      scheduleMatches stars { hour = Hours (Field (SpecificField 1))}
+      scheduleMatches stars { hour = mkHourSpec' (Field (SpecificField 1))}
                       (day 5 25 1 2) @?= True
 
     , testCase "matches a range" $
-      scheduleMatches stars { dayOfMonth = DaysOfMonth (Field (RangeField 3 5))}
+      scheduleMatches stars { dayOfMonth = mkDayOfMonthSpec' (Field (RangeField 3 5))}
                       (day 5 4 1 2) @?= True
 
     , testCase "does not match invalid range" $
-      scheduleMatches stars { dayOfMonth = DaysOfMonth (Field (RangeField 5 3))}
+      scheduleMatches stars { dayOfMonth = mkDayOfMonthSpec' (Field (RangeField 5 3))}
                       (day 5 4 1 2) @?= False
 
     , testCase "matches a list" $
-      scheduleMatches stars { month = Months (ListField (SpecificField 1 :| [SpecificField 2, SpecificField 3]))}
+      scheduleMatches stars { month = mkMonthSpec' (ListField (SpecificField 1 :| [SpecificField 2, SpecificField 3]))}
                      (day 2 3 1 2) @?= True
 
     , testCase "matches a step field" $
-       scheduleMatches stars { dayOfMonth = DaysOfMonth (StepField (RangeField 10 16) 2)}
+       scheduleMatches stars { dayOfMonth = mkDayOfMonthSpec' (StepField (RangeField 10 16) 2)}
                        (day 5 12 1 2) @?= True
 
     , testCase "does not match something missing the step field" $
-      scheduleMatches stars { dayOfMonth = DaysOfMonth (StepField (RangeField 10 16) 2)}
+      scheduleMatches stars { dayOfMonth = mkDayOfMonthSpec' (StepField (RangeField 10 16) 2)}
                       (day 5 13 1 2) @?= False
 
     , testCase "matches starred stepped fields" $
-      scheduleMatches stars { minute = Minutes (StepField Star 2)}
+      scheduleMatches stars { minute = mkMinuteSpec' (StepField Star 2)}
                             (day 5 13 1 4) @?= True
 
     , testCase "does not match fields that miss starred stepped fields" $
-      scheduleMatches stars { minute = Minutes (StepField Star 2)}
+      scheduleMatches stars { minute = mkMinuteSpec' (StepField Star 2)}
                       (day 5 13 1 5) @?= False
 
     , testCase "matches multiple fields at once" $
-      scheduleMatches stars { minute     = Minutes (StepField Star 2),
-                              dayOfMonth = DaysOfMonth (Field (SpecificField 3)),
-                              hour       = Hours (Field (RangeField 10 14)) }
+      scheduleMatches stars { minute     = mkMinuteSpec' (StepField Star 2),
+                              dayOfMonth = mkDayOfMonthSpec' (Field (SpecificField 3)),
+                              hour       = mkHourSpec' (Field (RangeField 10 14)) }
                       (day 5 3 13 2) @?= True
 
     , testCase "matches a monday as 1" $
-      scheduleMatches stars { dayOfWeek  = DaysOfWeek (Field (SpecificField 1)) }
+      scheduleMatches stars { dayOfWeek  = mkDayOfWeekSpec' (Field (SpecificField 1)) }
                       (UTCTime (fromGregorian 2014 3 17) 0) @?= True
 
     , testCase "matches a sunday as 0" $
-      scheduleMatches stars { dayOfWeek  = DaysOfWeek (Field (SpecificField 0)) }
+      scheduleMatches stars { dayOfWeek  = mkDayOfWeekSpec' (Field (SpecificField 0)) }
                       (UTCTime (fromGregorian 2014 3 16) 0) @?= True
 
     , testCase "matches a sunday as 7" $
-      scheduleMatches stars { dayOfWeek  = DaysOfWeek (Field (SpecificField 7)) }
+      scheduleMatches stars { dayOfWeek  = mkDayOfWeekSpec' (Field (SpecificField 7)) }
                       (UTCTime (fromGregorian 2014 3 16) 0) @?= True
 
     , testCase "matches weekly on a sunday at 0:00" $
@@ -83,8 +84,8 @@ describeScheduleMatches = testGroup "ScheduleMatches"
       scheduleMatches weekly (UTCTime (fromGregorian 2014 6 5) 600) @?= False
 
     , testCase "only needs weekday or monthday to match" $
-      scheduleMatches stars { dayOfWeek = DaysOfWeek (Field (SpecificField 1)),
-                              dayOfMonth = DaysOfMonth (Field (SpecificField 1)) }
+      scheduleMatches stars { dayOfWeek = mkDayOfWeekSpec' (Field (SpecificField 1)),
+                              dayOfMonth = mkDayOfMonthSpec' (Field (SpecificField 1)) }
                       (UTCTime (fromGregorian 2014 11 1) 600) @?= True
     -- https://github.com/MichaelXavier/cron/issues/18
     , testCase "correctly schedules steps and ranges" $ do
@@ -102,44 +103,44 @@ describeScheduleMatches = testGroup "ScheduleMatches"
 
     , testProperty "exact time matches" $ \t ->
       let (_, m, d, h, mn) = timeComponents t
-          sched = CronSchedule (Minutes (Field (SpecificField mn)))
-                               (Hours (Field (SpecificField h)))
-                               (DaysOfMonth (Field (SpecificField d)))
-                               (Months (Field (SpecificField m)))
-                               (DaysOfWeek (Field Star))
+          sched = CronSchedule (mkMinuteSpec' (Field (SpecificField mn)))
+                               (mkHourSpec' (Field (SpecificField h)))
+                               (mkDayOfMonthSpec' (Field (SpecificField d)))
+                               (mkMonthSpec' (Field (SpecificField m)))
+                               (mkDayOfWeekSpec' (Field Star))
       in scheduleMatches sched t
 
     , testProperty "any time with the same minute as n * * * * matches" $ arbitraryTimeFields $ \y m d h mn ->
-      let sched = stars { minute = Minutes (Field (SpecificField mn)) }
+      let sched = stars { minute = mkMinuteSpec' (Field (SpecificField mn)) }
           t     = day' y m d h mn
       in scheduleMatches sched t
 
     , testProperty "any time with the diff minute as n * * * * does not match" $ arbitraryTimeFields $ \y m d h mn ->
-      let sched = stars { minute = Minutes (Field (SpecificField (stepMax 59 mn))) }
+      let sched = stars { minute = mkMinuteSpec' (Field (SpecificField (stepMax 59 mn))) }
           t     = day' y m d h mn
       in not $ scheduleMatches sched t
 
     , testProperty "any time with the same hour as * n * * * matches" $ arbitraryTimeFields $ \y m d h mn ->
-      let sched = stars { hour = Hours (Field (SpecificField h)) }
+      let sched = stars { hour = mkHourSpec' (Field (SpecificField h)) }
           t     = day' y m d h mn
       in scheduleMatches sched t
 
     , testProperty "any time with the diff hour as * n * * * does not match" $ arbitraryTimeFields $ \y m d h mn ->
-      let sched = stars { hour = Hours (Field (SpecificField (stepMax 23 h))) }
+      let sched = stars { hour = mkHourSpec' (Field (SpecificField (stepMax 23 h))) }
           t     = day' y m d h mn
       in not $ scheduleMatches sched t
 
     , testProperty "any time with the same day as * * n * * matches" $ \t ->
       let (_, m, d, h, mn) = timeComponents t
-          sched = CronSchedule (Minutes (Field (SpecificField mn)))
-                               (Hours (Field (SpecificField h)))
-                               (DaysOfMonth (Field (SpecificField d)))
-                               (Months (Field (SpecificField m)))
-                               (DaysOfWeek (Field Star))
+          sched = CronSchedule (mkMinuteSpec' (Field (SpecificField mn)))
+                               (mkHourSpec' (Field (SpecificField h)))
+                               (mkDayOfMonthSpec' (Field (SpecificField d)))
+                               (mkMonthSpec' (Field (SpecificField m)))
+                               (mkDayOfWeekSpec' (Field Star))
       in scheduleMatches sched t
 
     , testProperty "any time with the diff day as * * n * * does not match" $ arbitraryTimeFields $ \y m d h mn ->
-      let sched = stars { dayOfMonth = DaysOfMonth (Field (SpecificField (stepMax 31 d))) }
+      let sched = stars { dayOfMonth = mkDayOfMonthSpec' (Field (SpecificField (stepMax 31 d))) }
           t     = day' y m d h mn
       in not $ scheduleMatches sched t
 
@@ -191,19 +192,19 @@ describeCronScheduleShow = testGroup "CronSchedule show"
     show stars @?= "CronSchedule * * * * *"
 
   , testCase "formats specific numbers" $
-    show stars { dayOfWeek = DaysOfWeek (Field (SpecificField 3))} @?=
+    show stars { dayOfWeek = mkDayOfWeekSpec' (Field (SpecificField 3))} @?=
          "CronSchedule * * * * 3"
 
   , testCase "formats lists" $
-    show stars { minute = Minutes (ListField (SpecificField 1 :| [SpecificField 2, SpecificField 3]))} @?=
+    show stars { minute = mkMinuteSpec' (ListField (SpecificField 1 :| [SpecificField 2, SpecificField 3]))} @?=
         "CronSchedule 1,2,3 * * * *"
 
   , testCase "formats ranges" $
-    show stars { hour = Hours (Field (RangeField 7 10))} @?=
+    show stars { hour = mkHourSpec' (Field (RangeField 7 10))} @?=
          "CronSchedule * 7-10 * * *"
 
   , testCase "formats steps" $
-    show stars { dayOfMonth = DaysOfMonth (StepField Star 2)} @?=
+    show stars { dayOfMonth = mkDayOfMonthSpec' (StepField Star 2)} @?=
         "CronSchedule * * */2 * *"
 
   , testCase "formats @yearly" $
@@ -243,6 +244,37 @@ describeCrontabEntryShow = testGroup "CrontabEntry Show"
   ]
 
 
+--TODO: evidently 0/0 0-0 0-0 */0 0-0 may not be valid
+describeNextMatch :: TestTree
+describeNextMatch = testGroup "nextMatch"
+  [ testProperty "is always in the future" $ \cs t ->
+      let t2 = traceShow cs $ nextMatch cs t
+      in t2 > t
+  , testProperty "always produces a time that will match the schedule" $ \cs t ->
+      let t2 = nextMatch cs t
+      in scheduleMatches cs t2
+  --TODO: walk by minutes and make sure t2 == first scheduleMatches in the future
+  , testProperty "returns the first minute in the future that matches" $ \cs t ->
+      let expected = head (filter (scheduleMatches cs) (take 1000 $ nextMinutes t))
+      in nextMatch cs t === expected
+  ]
+
+
+nextMinutes :: UTCTime -> [UTCTime]
+nextMinutes t = [ addMinutes tRounded mins | mins <- [1..]]
+  where
+    addMinutes time mins = addUTCTime (fromInteger (60 * mins)) time
+    -- round down to nearest 60
+    tRounded = t { utctDayTime = roundToMinute (utctDayTime t)}
+
+
+
+roundToMinute :: DiffTime -> DiffTime
+roundToMinute n = secondsToDiffTime (nInt - (nInt `mod` 60))
+  where
+    nInt = round n
+
+
 envSet :: CrontabEntry
 envSet = EnvVariable "FOO" "BAR"
 
@@ -250,11 +282,11 @@ entry :: CrontabEntry
 entry = CommandEntry stars "do stuff"
 
 stars :: CronSchedule
-stars = CronSchedule (Minutes (Field Star))
-                     (Hours (Field Star))
-                     (DaysOfMonth (Field Star))
-                     (Months (Field Star))
-                     (DaysOfWeek (Field Star))
+stars = CronSchedule (mkMinuteSpec' (Field Star))
+                     (mkHourSpec' (Field Star))
+                     (mkDayOfMonthSpec' (Field Star))
+                     (mkMonthSpec' (Field Star))
+                     (mkDayOfWeekSpec' (Field Star))
 
 timeComponents :: UTCTime -> (Integer, Int, Int, Int, Int)
 timeComponents (UTCTime dy dt) = (y, m, d, h, mn)

@@ -30,6 +30,7 @@ import           Data.Attoparsec.Text (Parser)
 import qualified Data.Attoparsec.Text as A
 import           Data.Char            (isSpace)
 import           Data.List.NonEmpty   (NonEmpty (..))
+import           Data.Monoid
 import           Data.Text            (Text)
 import           System.Cron
 
@@ -138,19 +139,24 @@ hourlyP  = A.string "@hourly"  *> pure hourly
 
 --TODO: must handle a combination of many of these. EITHER just *, OR a list of
 minutesP :: Parser MinuteSpec
-minutesP = Minutes <$> cronFieldP
+minutesP = mParse mkMinuteSpec "minutes" =<< cronFieldP
 
 hoursP :: Parser HourSpec
-hoursP = Hours <$> cronFieldP
+hoursP = mParse mkHourSpec "hours" =<< cronFieldP
 
 dayOfMonthP :: Parser DayOfMonthSpec
-dayOfMonthP = DaysOfMonth <$> cronFieldP
+dayOfMonthP = mParse mkDayOfMonthSpec "day of month" =<< cronFieldP
 
 monthP :: Parser MonthSpec
-monthP = Months <$> cronFieldP
+monthP = mParse mkMonthSpec "month" =<< cronFieldP
 
 dayOfWeekP :: Parser DayOfWeekSpec
-dayOfWeekP = DaysOfWeek <$> cronFieldP
+dayOfWeekP = mParse mkDayOfWeekSpec "day of week" =<< cronFieldP
 
 parseInt :: Parser Int
 parseInt = A.decimal
+
+mParse :: (Monad m) => (a -> Maybe b) -> String -> a -> m b
+mParse f ty = maybe (fail msg) return . f
+  where
+    msg = ty <> " out of range"
