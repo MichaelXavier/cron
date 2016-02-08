@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE CPP                        #-}
 --------------------------------------------------------------------
 -- |
 -- Module      : System.Cron.Parser
@@ -12,14 +11,14 @@
 --
 -- Attoparsec parser combinator for cron schedules. See cron documentation for
 -- how those are formatted.
--- 
+--
 -- > import Data.Attoparsec.Text (parseOnly)
 -- > import System.Cron.Parser
--- > 
+-- >
 -- > main :: IO ()
 -- > main = do
 -- >   print $ parseOnly cronSchedule "*/2 * 3 * 4,5,6"
--- 
+--
 --------------------------------------------------------------------
 module System.Cron.Parser (cronSchedule,
                            cronScheduleLoose,
@@ -28,15 +27,11 @@ module System.Cron.Parser (cronSchedule,
 
 import           System.Cron
 
-#if !MIN_VERSION_base(4,8,0)
-import           Control.Applicative  (pure, (*>), (<$>), (<*), (<*>), (<|>))
-#else
-import           Control.Applicative  ((<$>), (<|>))
-#endif
-import           Data.Char (isSpace)
+import           Control.Applicative  as Ap
 import           Data.Attoparsec.Text (Parser)
 import qualified Data.Attoparsec.Text as A
-import           Data.Text (Text)
+import           Data.Char            (isSpace)
+import           Data.Text            (Text)
 
 -- | Attoparsec Parser for a cron schedule. Complies fully with the standard
 -- cron format.  Also includes the following shorthand formats which cron also
@@ -100,7 +95,7 @@ cronFieldP = steppedP  <|>
              listP     <|>
              starP     <|>
              specificP
-  where starP         = A.char '*' *> pure Star
+  where starP         = A.char '*' *> Ap.pure Star
         rangeP        = do start <- parseInt
                            _     <- A.char '-'
                            end   <- parseInt

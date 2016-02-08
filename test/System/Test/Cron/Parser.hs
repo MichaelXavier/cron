@@ -1,15 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 module System.Test.Cron.Parser (tests) where
--- TODO: this *should* just work with {-# OPTIONS_GHC -F -pgmF hspec-discover #-}
-
 
 -------------------------------------------------------------------------------
-import           Data.Attoparsec.Text (Parser, parseOnly)
 import           Data.Text            (Text)
 -------------------------------------------------------------------------------
 import           SpecHelper
-import           System.Cron
-import           System.Cron.Parser
 -------------------------------------------------------------------------------
 
 

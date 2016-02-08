@@ -37,19 +37,27 @@ Extra-Source-Files:
 Homepage:           http://github.com/michaelxavier/cron
 Bug-Reports:        http://github.com/michaelxavier/cron/issues
 
+flag lib-Werror
+  default: False
+  manual: True
+
 library
- Exposed-modules: System.Cron,
-                  System.Cron.Parser,
-                  System.Cron.Schedule
- Ghc-Options:     -Wall
- Hs-source-dirs:  src
- build-depends:   base            >= 4 && < 5,
-                  attoparsec      >= 0.10,
-                  text            >= 0.11 && < 2,
-                  time            >= 1.4,
-                  old-locale      >= 1.0,
-                  mtl             >= 2.0.1,
-                  mtl-compat      >= 0.2.1
+  Exposed-modules: System.Cron,
+                   System.Cron.Parser,
+                   System.Cron.Schedule
+  Hs-source-dirs:  src
+  build-depends:   base            >= 4 && < 5,
+                   attoparsec      >= 0.10,
+                   text            >= 0.11 && < 2,
+                   time            >= 1.4,
+                   old-locale      >= 1.0,
+                   mtl             >= 2.0.1,
+                   mtl-compat      >= 0.2.1
+  if flag(lib-Werror)
+    ghc-options: -Werror
+
+  ghc-options: -Wall
+
 
 test-suite test
   Type:           exitcode-stdio-1.0
@@ -65,7 +73,12 @@ test-suite test
                   text                  >= 0.11 && < 2,
                   time                  >= 1.4,
                   transformers-compat   >= 0.4
-  Ghc-Options: -threaded -rtsopts -with-rtsopts=-N
+
+  if flag(lib-Werror)
+    ghc-options: -Werror
+
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+
 
 source-repository head
   Type:     git

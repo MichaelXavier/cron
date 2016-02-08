@@ -149,12 +149,30 @@ describeScheduleMatches = testGroup "ScheduleMatches"
         day' y m d h mn = UTCTime (fromGregorian y m d) (diffTime h mn)
         diffTime h mn = timeOfDayToTime $ TimeOfDay h mn 1
 
+arbitraryTimeFields
+    :: (Num r
+       , Num r1
+       , Num r2
+       , Num r3
+       , Ord r
+       , Ord r1
+       , Ord r2
+       , Ord r3
+       )
+    => (a -> r -> r1 -> r2 -> r3 -> t)
+    -> Positive a
+    -> Positive r
+    -> Positive r1
+    -> Positive r2
+    -> Positive r3
+    -> t
 arbitraryTimeFields f y m d h mn = f (getPositive y)
                                      (min 12 $ getPositive m)
                                      (min 28 $ getPositive d)
                                      (min 23 $ getPositive h)
                                      (min 59 $ getPositive mn)
 
+hoursMins :: DiffTime -> (Int, Int)
 hoursMins uTime = (hr, mn)
   where
     TimeOfDay { todHour = hr,
@@ -247,6 +265,14 @@ timeComponents (UTCTime dy dt) = (y, m, d, h, mn)
     (h, mn)   = hoursMins dt
 
 
+mkTime
+    :: Integer
+    -> Int
+    -> Int
+    -> DiffTime
+    -> DiffTime
+    -> DiffTime
+    -> UTCTime
 mkTime y m d hr mn s = UTCTime day time
   where day = fromGregorian y m d
         time = s + 60 * mn + 60 * 60 * hr
