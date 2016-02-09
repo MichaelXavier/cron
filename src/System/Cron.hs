@@ -35,7 +35,8 @@ module System.Cron (module System.Cron.Types,
                     hourly,
                     everyMinute,
                     scheduleMatches,
-                    nextMatch) where
+                    nextMatch
+                   ) where
 
 
 import           Data.Ix
@@ -45,6 +46,7 @@ import           Data.Time.Calendar
 import           Data.Time.Calendar.WeekDate
 import           Data.Time.Clock
 import           Data.Time.LocalTime         (TimeOfDay (..), timeToTimeOfDay)
+import Debug.Trace
 
 import           System.Cron.Types
 
@@ -112,23 +114,66 @@ scheduleMatches CronSchedule {..}
         restricted (StepField' sf)            = restricted (Field (sfField sf))
 
 nextMatch :: CronSchedule -> UTCTime -> UTCTime
-nextMatch cs t = head (filter (scheduleMatches cs) (take 1000 $ nextMinutes t)) --TODO: drop take. could actually use a take of 1 year
-    --FIXME: slowest and dumbest possible way
-
-
-nextMinutes :: UTCTime -> [UTCTime]
-nextMinutes t = [ addMinutes tRounded mins | mins <- [1..]]
+nextMatch CronSchedule {..} (UTCTime d t) =
+  UTCTime d2 t2
   where
-    addMinutes time mins = addUTCTime (fromInteger (60 * mins)) time
-    -- round down to nearest 60
-    tRounded = t { utctDayTime = roundToMinute (utctDayTime t)}
+    t2 = nextMatchingTime minute hour t
+    dayRollover = t2 <= t
+    startDay = if dayRollover
+                  then succ d
+                  else d
+    d2 = nextMatchingDay dayOfMonth month dayOfWeek startDay
 
 
-
-roundToMinute :: DiffTime -> DiffTime
-roundToMinute n = secondsToDiffTime (nInt - (nInt `mod` 60))
+-------------------------------------------------------------------------------
+-- | Calculate the next matching time from the given time. Because of the way time loops daily, if the resulting DiffTime is > the original, you can assume its the same day, otherwise that its the next day
+nextMatchingTime :: MinuteSpec -> HourSpec -> DiffTime -> DiffTime
+nextMatchingTime ms hs t = fromIntegral ((nextHour * 60 * 60) + nextMin * 60)
   where
-    nInt = round n
+    minuteSequence = [curMin+1..59] ++ [0..59]
+    (curHour, curMin) = timeOfDay t
+    hourRollover = nextMin <= curMin
+    startHour = if hourRollover
+                   then succ curHour
+                   else curHour
+    nextHour =  head [hr | hr <- [startHour..23] ++ [0..23], matchField hr CHour hsf]
+    nextMin = head [mn | mn <- minuteSequence, matchField mn CMinute msf]
+    
+    hsf = hourSpec hs
+    msf = minuteSpec ms
+
+
+-------------------------------------------------------------------------------
+timeOfDay :: DiffTime -> (Int, Int)
+timeOfDay t = (h, m)
+  where
+    seconds = floor t
+    minutes = seconds `div` 60
+    (h, m) = minutes `divMod` 60
+
+
+-------------------------------------------------------------------------------
+-- | Finds the next matching day for the given specs. Choosing the
+-- same day *is* allowed, so let the result of 'nextMatchingTime'
+-- determine which day to start on (i.e. if it rolled over, we start tomorrow).
+nextMatchingDay :: DayOfMonthSpec -> MonthSpec -> DayOfWeekSpec -> Day -> Day
+nextMatchingDay dms ms dows d
+  -- | domMatch && monthMatch && dowMatch = d
+  --TODO: our bug is that this is allowed for dow: 0-1/2
+  | domMatch && monthMatch && (dowMatch || traceShow ("curDow", curDow, dows) False) = d
+  | otherwise                          = nextMatchingDay dms ms dows (succ d)
+  where
+    domMatch = if matchField curDom CDayOfMonth (dayOfMonthSpec dms)
+                 then trace "dom match" True
+                 else trace "no dom match" False
+    monthMatch = if matchField curMonth CMonth (monthSpec ms)
+                   then trace "month match" True
+                   else trace "no month match" False
+    dowMatch = if matchField curDow CDayOfWeek (dayOfWeekSpec dows)
+                 then trace "dow match" True
+                 else trace "no dow match" False
+    (_, curMonth, curDom) = toGregorian d
+    (_, _, curDow) = toWeekDate d
 
 
 --TODO: break out basic field into another function?
@@ -163,14 +208,16 @@ expandDivided :: BaseField
                  -> Int
                  -> CronUnit
                  -> [Int]
-expandDivided Star step unit                      = fillTo 0 max' step
+expandDivided Star step unit = fillTo 0 max' step
   where max' = maxValue unit
 expandDivided (RangeField' rf) step unit = fillTo start finish' step
   where
     finish' = minimum [finish, maxValue unit]
     start = rfBegin rf
     finish = rfEnd rf
-expandDivided _ _ _                               = [] -- invalid
+expandDivided (SpecificField' sf) step unit = dropWhile (< startAt) (expandDivided Star step unit)
+  where
+    startAt = specificField sf
 
 fillTo :: Int
        -> Int

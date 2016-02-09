@@ -20,7 +20,7 @@ import           Test.Tasty            as X
 import           Test.Tasty.HUnit      as X
 import           Test.Tasty.QuickCheck as X
 -------------------------------------------------------------------------------
-import           System.Cron           as X
+import           System.Cron2           as X
 import           System.Cron.Parser    as X
 -------------------------------------------------------------------------------
 

@@ -2,7 +2,8 @@
 module System.Test.Cron (tests) where
 
 -------------------------------------------------------------------------------
-import           Data.List.NonEmpty (NonEmpty (..))
+import           Data.List.NonEmpty    (NonEmpty (..))
+import           Data.Time.Clock.POSIX
 -------------------------------------------------------------------------------
 import           SpecHelper
 -------------------------------------------------------------------------------
@@ -243,12 +244,16 @@ describeCrontabEntryShow = testGroup "CrontabEntry Show"
 --TODO: evidently 0/0 0-0 0-0 */0 0-0 may not be valid
 describeNextMatch :: TestTree
 describeNextMatch = testGroup "nextMatch"
-  [ testProperty "is always in the future" $ \cs t ->
-      let t2 = traceShow cs $ nextMatch cs t
-      in t2 > t
+  [ testProperty "is always in the future (at least 1 minute advanced)" $ \cs t ->
+      let tSecs = floor (utcTimeToPOSIXSeconds t) :: Integer
+          minT2 = posixSecondsToUTCTime (fromInteger ((tSecs `div` 60) + 1) * 60)
+      in case traceShow (cs, t) $ nextMatch cs t of
+           Just t2 -> t2 >= minT2
+           Nothing -> True
   , testProperty "always produces a time that will match the schedule" $ \cs t ->
-      let t2 = nextMatch cs t
-      in scheduleMatches cs t2
+      case nextMatch cs t of
+        Just t2 -> scheduleMatches cs t2
+        Nothing -> True
   -- , testProperty "returns the first minute in the future that matches" $ \cs t ->
   --     let expected = head (filter (scheduleMatches cs) (take 1000 $ nextMinutes t))
   --     in nextMatch cs t === expected

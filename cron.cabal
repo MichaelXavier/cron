@@ -43,6 +43,8 @@ flag lib-Werror
 
 library
   Exposed-modules: System.Cron,
+                   --TODO: drop
+                   System.Cron2,
                    System.Cron.Parser,
                    System.Cron.Schedule
   other-modules:   System.Cron.Types

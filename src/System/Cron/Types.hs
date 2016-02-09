@@ -210,9 +210,9 @@ mkRangeField x y
 
 
 instance Show BaseField where
-  show Star                  = "*"
-  show (SpecificField' f)     = show f
-  show (RangeField' rf)      = show rf
+  show Star               = "*"
+  show (SpecificField' f) = show f
+  show (RangeField' rf)   = show rf
 
 data CronField = Field BaseField                |
                  ListField (NonEmpty BaseField) | -- ^ Matches a list of expressions.
