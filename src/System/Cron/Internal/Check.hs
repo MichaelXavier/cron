@@ -21,6 +21,16 @@ import           System.Cron.Types
 -------------------------------------------------------------------------------
 
 
+-- | Will return the next time from the given starting point where
+-- this schedule will match. Returns Nothing if the schedule will
+-- never match. Note that this function is not inclusive of the given
+-- time: the result will always be at least 1 minute beyond the given
+-- time. This is usually used to implement absolute timestamp
+-- schedulers. If you need to see multiple matches ahead, just keep
+-- feeding the result into nextMatch. Note that because nextMatch only
+-- returns Nothing on a schedule that will *never* be matched, it is
+-- safe to assume that if a schedule returns a Just once, it will
+-- always return a Just.
 nextMatch :: CronSchedule -> UTCTime -> Maybe UTCTime
 nextMatch cs@CronSchedule {..} now
   | domRestricted && dowRestricted = do
@@ -217,6 +227,9 @@ type EField = NonEmpty Int
 
 
 
+-- | Does the given cron schedule match for the given timestamp? This
+-- is usually used for implementing polling-type schedulers like cron
+-- itself.
 scheduleMatches
     :: CronSchedule
     -> UTCTime

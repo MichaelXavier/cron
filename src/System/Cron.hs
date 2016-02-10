@@ -1,13 +1,9 @@
 {-# LANGUAGE RecordWildCards #-}
 --TODO: internal module, quickcheck
 module System.Cron
-    ( -- * Types
-      module System.Cron.Types
-    -- * Parsing
+    ( module System.Cron.Types
     , module System.Cron.Parser
-    -- * Scheduler
     , module System.Cron.Schedule
-    -- * Checking a Schedule
     , scheduleMatches
     , nextMatch
     ) where

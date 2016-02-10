@@ -276,6 +276,9 @@ describeNextMatch = testGroup "nextMatch"
           let Just actual = find (scheduleMatches cs) ((takeWhile (<= res) (nextMinutes t)))
           in res `sameMinute` actual
         Nothing -> property True
+  , testProperty "a schedule that produces Just for one t will produce it for any t" $ \cs t1 t2 -> isJust (nextMatch cs t1) ==>
+      counterexample ("nextMatch produced Just for " <> show t1 <> " but not " <> show t2) 
+                     (isJust (nextMatch cs t2) == True)
   ]
 
 
