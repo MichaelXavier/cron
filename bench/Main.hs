@@ -10,13 +10,24 @@ import           Criterion.Main
 import           Data.Attoparsec.Text (Parser, parseOnly)
 import           Data.Text            (Text)
 import qualified Data.Text            as T
+import           Data.Time
 -------------------------------------------------------------------------------
 import           System.Cron.Parser
+import           System.Cron2
 -------------------------------------------------------------------------------
 
 
 main :: IO ()
 main = defaultMain
+  [ parserBenchmarks
+  , scheduleMatchesBenchmarks
+  , nextMatchBenchmarks
+  ]
+
+
+-------------------------------------------------------------------------------
+parserBenchmarks :: Benchmark
+parserBenchmarks = bgroup "parsers"
   [ parserBench "cronSchedule" cronSchedule cronScheduleText
   , parserBench "cronScheduleLoose" cronScheduleLoose cronScheduleText
   , parserBench "crontab" crontab cronTabText
@@ -26,6 +37,25 @@ main = defaultMain
       ]
   ]
 
+
+-------------------------------------------------------------------------------
+scheduleMatchesBenchmarks :: Benchmark
+scheduleMatchesBenchmarks = bgroup "scheduleMatches"
+  [
+    bench "match" (whnf (scheduleMatches weekly) matchingTime)
+  , bench "no match" (whnf (scheduleMatches weekly) nonMatchingTime)
+  ]
+  where
+    matchingTime = mkTime 2016 2 14 0 0 0
+    nonMatchingTime = mkTime 2016 2 15 0 0 0
+
+
+-------------------------------------------------------------------------------
+nextMatchBenchmarks :: Benchmark
+nextMatchBenchmarks =
+  bench "nextMatch" (whnf (nextMatch weekly) now)
+  where
+    now = mkTime 2016 2 14 0 0 0
 
 -------------------------------------------------------------------------------
 parserBench :: String -> Parser a -> Text -> Benchmark
@@ -44,3 +74,17 @@ envSetText = "FOO=BAR"
 -------------------------------------------------------------------------------
 cronTabText :: Text
 cronTabText = T.unlines (concat (zipWith (\x y -> [x,y]) (replicate 50 cronScheduleText) (repeat envSetText)))
+
+
+-------------------------------------------------------------------------------
+mkTime
+    :: Integer
+    -> Int
+    -> Int
+    -> DiffTime
+    -> DiffTime
+    -> DiffTime
+    -> UTCTime
+mkTime y m d hr mn s = UTCTime day time
+  where day = fromGregorian y m d
+        time = s + 60 * mn + 60 * 60 * hr

@@ -72,6 +72,7 @@ nextMatch :: CronSchedule -> UTCTime -> Maybe UTCTime
 nextMatch cs = listToMaybe . nextMatches cs
 
 
+-------------------------------------------------------------------------------
 -- | Produces a lazy, *infinite* list of matching times in the future
 -- for a schedule. If the schedule is not satisfiable, it will be an
 -- empty list.
@@ -85,7 +86,6 @@ nextMatches' Expanded {..} now = solutions
   where
     -- move to next minute
     UTCTime startDay _ = addUTCTime 60 now
-    -- solutionTOD = validTODs hourF minF startTOD
     solutions = filter validSolution [UTCTime d tod
                                      | d <- validDays monthF domF startDay
                                      , tod <- validTODs hourF minF
@@ -93,12 +93,14 @@ nextMatches' Expanded {..} now = solutions
     validSolution t = t > now && dowMatch t dowF
 
 
+-------------------------------------------------------------------------------
 dowMatch :: UTCTime -> EField -> Bool
 dowMatch (UTCTime d _) dows = oneIndexedDOW - 1 `elem` dows
   where
     (_, _, oneIndexedDOW) = toWeekDate d
 
 
+-------------------------------------------------------------------------------
 validDays :: EField -> EField -> Day -> [Day]
 validDays months days start =
   concat (firstYearDates:subsequentYearDates)
@@ -113,6 +115,7 @@ validDays months days start =
                                     , d <- sortBy compare (FT.toList days)]
 
 
+-------------------------------------------------------------------------------
 -- | Guarantees: the Expanded will be satisfiable (no invalid dates, no empties). dow 7 will be normalized to 0 (Sunday)
 expand :: CronSchedule -> Maybe Expanded
 expand CronSchedule {..} = do
@@ -185,19 +188,12 @@ validTODs hrs mns = dtSequence
     dtSequence = [ todToDiffTime hr mn | hr <- hourSequence, mn <- minuteSequence]
 
 
+-------------------------------------------------------------------------------
 todToDiffTime :: Int -> Int -> DiffTime
 todToDiffTime nextHour nextMin = fromIntegral ((nextHour * 60 * 60) + nextMin * 60)
 
 
--- | Takes a finite non empty list and a desired starting point and
--- produces an *infinite* non empty list starting at the desired starting point or the next highest
--- seekCycle :: Ord a => a -> NonEmpty a -> [a]
--- seekCycle needle list = dropWhile (< needle) list' <> cycle list'
---   where
---     list' = sortBy compare (FT.toList list)
-
-
-
+-------------------------------------------------------------------------------
 timeOfDay :: DiffTime -> (Int, Int)
 timeOfDay t = (h, m)
   where
@@ -206,11 +202,7 @@ timeOfDay t = (h, m)
     (h, m) = minutes `divMod` 60
 
 
--- solvable :: Expanded -> Bool
--- solvable exp@(Expanded mns hrs ds ms dows) =
---   or [hasValidForMonth month ds | month <- FT.toList ms]
-
-
+-------------------------------------------------------------------------------
 hasValidForMonth
     :: Int
     -- ^ Month
@@ -230,6 +222,8 @@ hasValidForMonth 11 days = minimum days <= 30
 hasValidForMonth 12 days = minimum days <= 31
 hasValidForMonth _ _     = False
 
+
+-------------------------------------------------------------------------------
 data Expanded = Expanded {
      minF   :: EField
    , hourF  :: EField
@@ -239,9 +233,11 @@ data Expanded = Expanded {
    } deriving (Show)
 
 
+-------------------------------------------------------------------------------
 -- This could be an intmap but I'm not convinced there's significant
 -- performance to be gained
 type EField = NonEmpty Int
+
 
 -------------------------------------------------------------------------------
 -- Schedule checking

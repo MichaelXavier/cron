@@ -96,6 +96,7 @@ benchmark bench
     , criterion
     , text
     , attoparsec
+    , time
 
   if flag(lib-Werror)
     ghc-options: -Werror
