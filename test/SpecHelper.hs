@@ -12,6 +12,7 @@ import           Data.Attoparsec.Text  as X (Parser, parseOnly)
 import           Data.DeriveTH
 import           Data.List.NonEmpty    (NonEmpty (..))
 import           Data.Maybe            as X
+import           Data.Monoid           as X
 import           Data.Time.Calendar    as X
 import           Data.Time.Clock       as X
 import           Data.Time.LocalTime   as X
@@ -20,8 +21,8 @@ import           Test.Tasty            as X
 import           Test.Tasty.HUnit      as X
 import           Test.Tasty.QuickCheck as X
 -------------------------------------------------------------------------------
-import           System.Cron2           as X
 import           System.Cron.Parser    as X
+import           System.Cron2          as X
 -------------------------------------------------------------------------------
 
 

@@ -69,25 +69,34 @@ everyMinute = CronSchedule {
 -------------------------------------------------------------------------------
 
 nextMatch :: CronSchedule -> UTCTime -> Maybe UTCTime
-nextMatch cs = listToMaybe . nextMatches cs
+nextMatch cs@CronSchedule {..} now
+  | domRestricted && dowRestricted = do
+      -- this trick is courtesy of Python's croniter: run the schedule
+      -- once with * in the DOM spot and once with * in the DOW slot
+      -- and then choose the earlier of the two.
+      domStarSpec <- mkDayOfMonthSpec (Field Star)
+      dowStarSpec <- mkDayOfWeekSpec (Field Star)
+      let domStarResult = nextMatch cs { dayOfMonth = domStarSpec } now
+      let dowStarResult = nextMatch cs { dayOfWeek = dowStarSpec} now
+      listToMaybe (sort (catMaybes [domStarResult, dowStarResult]))
+  | otherwise = do
+    expanded@Expanded {..} <- expand cs
+    let daysSource = validDays monthF domF startDay
+    --TODO: shuffle around stars on fields dom and dow if both restricted
+    listToMaybe (nextMatches daysSource expanded now)
+  where
+    UTCTime startDay _ = addUTCTime 60 now
+    domRestricted = restricted (dayOfMonthSpec dayOfMonth)
+    dowRestricted = restricted (dayOfWeekSpec dayOfWeek)
 
 
 -------------------------------------------------------------------------------
--- | Produces a lazy, *infinite* list of matching times in the future
--- for a schedule. If the schedule is not satisfiable, it will be an
--- empty list.
-nextMatches :: CronSchedule -> UTCTime -> [UTCTime]
-nextMatches cs t = maybe [] (flip nextMatches' t) (expand cs)
-
-
--------------------------------------------------------------------------------
-nextMatches' :: Expanded -> UTCTime -> [UTCTime]
-nextMatches' Expanded {..} now = solutions
+nextMatches :: [Day] -> Expanded -> UTCTime -> [UTCTime]
+nextMatches daysSource Expanded {..} now = solutions
   where
     -- move to next minute
-    UTCTime startDay _ = addUTCTime 60 now
     solutions = filter validSolution [UTCTime d tod
-                                     | d <- validDays monthF domF startDay
+                                     | d <- daysSource
                                      , tod <- validTODs hourF minF
                                      ]
     validSolution t = t > now && dowMatch t dowF
@@ -95,9 +104,30 @@ nextMatches' Expanded {..} now = solutions
 
 -------------------------------------------------------------------------------
 dowMatch :: UTCTime -> EField -> Bool
-dowMatch (UTCTime d _) dows = oneIndexedDOW - 1 `elem` dows
+dowMatch (UTCTime d _) dows = (getDOW d `elem` dows)
+
+
+-------------------------------------------------------------------------------
+-- | ISO8601 maps Sunday as 7 and Monday as 1, we want Sunday as 0
+getDOW :: Day -> Int
+getDOW d
+  | iso8601DOW == 7 = 0
+  | otherwise       = iso8601DOW
   where
-    (_, _, oneIndexedDOW) = toWeekDate d
+    (_, _, iso8601DOW) = toWeekDate d
+
+
+-------------------------------------------------------------------------------
+-- Given the week of the given day, find all the days of the week
+-- requested, then project out all future dates from there. This will
+-- give you all days in the future matching any of the requested days.
+-- validDOWs :: EField -> Day -> [Day]
+-- validDOWs dows start = filter (> start) (concat (zipWith addWeeks (repeat startPoints) [0..]))
+--   where
+--     addWeeks dys numWeeks = (addDays (7 * numWeeks)) <$> dys
+--     (curYear, curWeek, _) = toWeekDate start
+--     dows' = sortBy compare (FT.toList dows)
+--     startPoints = [fromWeekDate curYear curWeek dow | dow <- dows']
 
 
 -------------------------------------------------------------------------------
@@ -116,7 +146,8 @@ validDays months days start =
 
 
 -------------------------------------------------------------------------------
--- | Guarantees: the Expanded will be satisfiable (no invalid dates, no empties). dow 7 will be normalized to 0 (Sunday)
+-- | Guarantees: the Expanded will be satisfiable (no invalid dates,
+-- no empties). dow 7 will be normalized to 0 (Sunday)
 expand :: CronSchedule -> Maybe Expanded
 expand CronSchedule {..} = do
   expanded <- Expanded <$> minF'
@@ -136,7 +167,13 @@ expand CronSchedule {..} = do
     remapSunday lst = case NE.partition (\n -> n == 0 || n == 7) lst of
                         ([], _)       -> lst
                         (_, noSunday) -> 0 :| noSunday
-    satisfiable Expanded {..} = or [hasValidForMonth m domF | m <- (FT.toList monthF)]
+    domRestricted = restricted (dayOfMonthSpec dayOfMonth)
+    dowRestricted = restricted (dayOfWeekSpec dayOfWeek)
+    -- If DOM and DOW are restricted, they are ORed, so even if
+    -- there's an invalid day for the month, it is still satisfiable
+    -- because it will just choose the DOW path
+    satisfiable Expanded {..} = (domRestricted && dowRestricted) ||
+      or [hasValidForMonth m domF | m <- (FT.toList monthF)]
 
 
 -------------------------------------------------------------------------------
@@ -154,8 +191,8 @@ expandBFStepped (_, unitMax) (RangeField' rf) step = NE.nonEmpty (fillTo (start,
     finish' = min finish unitMax
     start = rfBegin rf
     finish = rfEnd rf
-expandBFStepped rng (SpecificField' sf) step =
-  NE.nonEmpty . NE.dropWhile (< startAt) =<< (expandBFStepped rng Star step)
+expandBFStepped (_, unitMax) (SpecificField' sf) step =
+  expandBFStepped (startAt, unitMax) Star step
   where
     startAt = specificField sf
 
@@ -168,8 +205,9 @@ fillTo (start, finish) step
   | step <= 0      = []
   | finish < start = []
   | otherwise      = takeWhile (<= finish) nums
-  where nums = map (start +) adds
-        adds = map (*2) [0..]
+  where
+    nums = [ start + (step * iter) | iter <- [0..]]
+
 
 -------------------------------------------------------------------------------
 expandBF :: (Int, Int) -> BaseField -> Maybe EField
@@ -248,7 +286,8 @@ scheduleMatches
     :: CronSchedule
     -> UTCTime
     -> Bool
-scheduleMatches cs@CronSchedule {..} (UTCTime d t) = maybe False go (expand cs)
+scheduleMatches cs@CronSchedule {..} (UTCTime d t) =
+  maybe False go (expand cs)
   where
     go Expanded {..} = and
       [ FT.elem mn minF
@@ -269,17 +308,19 @@ scheduleMatches cs@CronSchedule {..} (UTCTime d t) = maybe False go (expand cs)
         -- however, achieve the desired result by adding a test to the
         -- command (see the last example in EXAMPLE CRON FILE below).
         checkDOMAndDOW
-          | restricted (dayOfMonthSpec dayOfMonth) && restricted (dayOfWeekSpec dayOfWeek) = 
+          | restricted (dayOfMonthSpec dayOfMonth) && restricted (dayOfWeekSpec dayOfWeek) =
               domMatches || dowMatches
           | otherwise = domMatches && dowMatches
         domMatches = FT.elem dom domF
         dowMatches = FT.elem dow dowF
-        restricted = not . isStar
-        isStar (Field Star) = True
-        isStar _            = False
     (_, mth, dom) = toGregorian d
     (hr, mn) = timeOfDay t
-    (_, _, iso8601DOW) = toWeekDate d
-    dow
-      | iso8601DOW == 7 = 0
-      | otherwise       = iso8601DOW
+    dow = getDOW d
+
+
+restricted :: CronField -> Bool
+restricted = not . isStar
+
+isStar :: CronField -> Bool
+isStar (Field Star) = True
+isStar _            = False

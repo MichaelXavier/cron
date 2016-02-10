@@ -263,8 +263,8 @@ describeNextMatch = testGroup "nextMatch"
            Nothing -> True
   , testProperty "always produces a time that will match the schedule" $ \cs t ->
       case nextMatch cs t of
-        Just t2 -> scheduleMatches cs t2
-        Nothing -> True
+        Just t2 -> counterexample (show t2 <> " does not match " <> show cs) (scheduleMatches cs t2)
+        Nothing -> property True
   -- , testCase "special case" $ do
   --     let Right cs = parseOnly cronSchedule "* * * * *"
   --         t = mkTime 1858 11 20 0 0 1
@@ -273,8 +273,7 @@ describeNextMatch = testGroup "nextMatch"
   , localOption (QuickCheckTests 20) $ testProperty "returns the first minute in the future that matches" $ \cs t ->
       case nextMatch cs t of
         Just res ->
-          let --strat = parList r0
-              Just actual = find (scheduleMatches cs) ((takeWhile (<= res) (nextMinutes t)))
+          let Just actual = find (scheduleMatches cs) ((takeWhile (<= res) (nextMinutes t)))
           in res `sameMinute` actual
         Nothing -> property True
   ]
