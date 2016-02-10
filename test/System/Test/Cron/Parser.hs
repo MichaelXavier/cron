@@ -15,8 +15,12 @@ tests = testGroup "System.Cron.Parser"
   , describeCronScheduleLoose
   , describeCrontab
   , describeCrontabEntry
+  , describeSerializeParseCronSchedule
+  , describeSerializeParseCrontab
   ]
 
+
+-------------------------------------------------------------------------------
 describeCronSchedule :: TestTree
 describeCronSchedule = testGroup "cronSchedule"
   [
@@ -93,6 +97,8 @@ describeCronSchedule = testGroup "cronSchedule"
   where assertSuccessfulParse = assertParse cronSchedule
         assertFailedParse = assertNoParse cronSchedule
 
+
+-------------------------------------------------------------------------------
 describeCronScheduleLoose :: TestTree
 describeCronScheduleLoose = testGroup "cronScheduleLoose"
   [
@@ -102,6 +108,8 @@ describeCronScheduleLoose = testGroup "cronScheduleLoose"
   ]
   where assertSuccessfulParse = assertParse cronScheduleLoose
 
+
+-------------------------------------------------------------------------------
 describeCrontab :: TestTree
 describeCrontab = testGroup "crontab"
   [
@@ -131,6 +139,8 @@ describeCrontab = testGroup "crontab"
   ]
   where assertSuccessfulParse = assertParse crontab
 
+
+-------------------------------------------------------------------------------
 describeCrontabEntry :: TestTree
 describeCrontabEntry = testGroup "crontabEntry"
   [
@@ -160,6 +170,26 @@ describeCrontabEntry = testGroup "crontabEntry"
   ]
   where assertSuccessfulParse = assertParse crontabEntry
 
+
+-------------------------------------------------------------------------------
+describeSerializeParseCronSchedule :: TestTree
+describeSerializeParseCronSchedule = testGroup "serialize/parse CronSchedule"
+  [
+    testProperty "roundtrips" $ \cs -> do
+      parseCronSchedule (serializeCronSchedule cs) === Right cs
+  ]
+
+
+-------------------------------------------------------------------------------
+describeSerializeParseCrontab :: TestTree
+describeSerializeParseCrontab = testGroup "serialize/parse Crontab"
+  [
+    testProperty "roundtrips" $ \ct -> do
+      parseCrontab (serializeCrontab ct) === Right ct
+  ]
+
+
+-------------------------------------------------------------------------------
 assertParse :: (Eq a, Show a)
                => Parser a
                -> Text
@@ -168,18 +198,25 @@ assertParse :: (Eq a, Show a)
 assertParse parser txt expected = parsed @?= Right expected
   where parsed = parseOnly parser txt
 
---assertNoParse :: Parser a -> Text -> b
+
+-------------------------------------------------------------------------------
 assertNoParse :: (Eq a, Show a)
                  => Parser a
                  -> Text
                  -> Assertion
 assertNoParse parser txt = isLeft (parseOnly parser txt) @?= True
 
+
+-------------------------------------------------------------------------------
 envSet :: CrontabEntry
 envSet = EnvVariable "FOO" "BAR"
 
+
+-------------------------------------------------------------------------------
 entry :: CrontabEntry
 entry = CommandEntry stars (CronCommand "do stuff")
 
+
+-------------------------------------------------------------------------------
 stars :: CronSchedule
 stars = everyMinute

@@ -50,7 +50,7 @@ module System.Cron.Types
 -------------------------------------------------------------------------------
 import qualified Data.Foldable      as FT
 import           Data.Ix
-import           Data.List.NonEmpty (NonEmpty)
+import           Data.List.NonEmpty (NonEmpty (..))
 import qualified Data.List.NonEmpty as NE
 import           Data.Monoid
 import           Data.Text          (Text)
@@ -132,11 +132,11 @@ instance Show CronSchedule where
 
 instance ShowT CronSchedule where
   showT CronSchedule {..} = T.unwords [ showT minute
-                                , showT hour
-                                , showT dayOfMonth
-                                , showT month
-                                , showT dayOfWeek
-                                ]
+                                      , showT hour
+                                      , showT dayOfMonth
+                                      , showT month
+                                      , showT dayOfWeek
+                                      ]
 
 serializeCronSchedule :: CronSchedule -> Text
 serializeCronSchedule = showT
@@ -358,7 +358,15 @@ mkRangeField x y
 data CronField = Field BaseField
                | ListField (NonEmpty BaseField) -- ^ Matches a list of expressions.
                | StepField' StepField           -- ^ Matches a stepped expression, e.g. (*/2).
-                 deriving (Eq)
+
+
+instance Eq CronField where
+  Field a == Field b = a == b
+  Field a == ListField (b :| []) = a == b
+  ListField as == ListField bs = as == bs
+  ListField (a :| []) == Field b = a == b
+  StepField' a == StepField' b = a == b
+  _ == _ = False
 
 
 instance ShowT CronField where

@@ -7,35 +7,47 @@ module SpecHelper
 
 
 -------------------------------------------------------------------------------
-import           Control.Applicative   as X
-import           Data.Attoparsec.Text  as X (Parser, parseOnly)
+import           Control.Applicative       as X
+import           Data.Attoparsec.Text      as X (Parser, parseOnly)
 import           Data.DeriveTH
-import           Data.List.NonEmpty    (NonEmpty (..))
-import           Data.Maybe            as X
-import           Data.Monoid           as X
-import           Data.Time.Calendar    as X
-import           Data.Time.Clock       as X
-import           Data.Time.LocalTime   as X
-import           Debug.Trace           as X
-import           Test.Tasty            as X
-import           Test.Tasty.HUnit      as X
-import           Test.Tasty.QuickCheck as X
+import           Data.List.NonEmpty        (NonEmpty (..))
+import           Data.Maybe                as X
+import           Data.Monoid               as X
+import           Data.Text                 (Text)
+import qualified Data.Text                 as T
+import           Data.Time.Calendar        as X
+import           Data.Time.Clock           as X
+import           Data.Time.LocalTime       as X
+import           Debug.Trace               as X
+import           Test.QuickCheck.Instances ()
+import           Test.Tasty                as X
+import           Test.Tasty.HUnit          as X
+import           Test.Tasty.QuickCheck     as X
 -------------------------------------------------------------------------------
-import           System.Cron           as X
+import           System.Cron               as X
 -------------------------------------------------------------------------------
 
-
-instance Arbitrary UTCTime where
-  arbitrary = do
-    d <- ModifiedJulianDay . fromInteger . getPositive <$> arbitrary
-    t <- fromInteger . getPositive <$> arbitrary
-    return $ UTCTime d t
 
 $(derive makeArbitrary ''NonEmpty)
 $(derive makeArbitrary ''BaseField)
 $(derive makeArbitrary ''CronField)
 $(derive makeArbitrary ''CronSchedule)
+$(derive makeArbitrary ''Crontab)
 
+instance Arbitrary CronCommand where
+  arbitrary = CronCommand <$> alphaGen
+
+
+instance Arbitrary CrontabEntry where
+  arbitrary = oneof [ CommandEntry <$> arbitrary <*> arbitrary
+                    , EnvVariable <$> alphaGen <*> alphaGen
+                    ]
+
+
+alphaGen :: Gen Text
+alphaGen = T.pack <$> listOf1 gen
+  where
+    gen = elements (['a'..'z'] <> ['A'..'Z'])
 
 instance Arbitrary MinuteSpec where
   arbitrary = arbitraryMaybe mkMinuteSpec

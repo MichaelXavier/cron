@@ -83,6 +83,7 @@ test-suite test
                   , time
                   , transformers-compat
                   , semigroups
+                  , quickcheck-instances
 
   if flag(lib-Werror)
     ghc-options: -Werror
