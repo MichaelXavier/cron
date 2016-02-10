@@ -252,15 +252,35 @@ scheduleMatches
     :: CronSchedule
     -> UTCTime
     -> Bool
-scheduleMatches cs (UTCTime d t) = maybe False go (expand cs)
+scheduleMatches cs@CronSchedule {..} (UTCTime d t) = maybe False go (expand cs)
   where
     go Expanded {..} = and
       [ FT.elem mn minF
       , FT.elem hr hourF
-      , FT.elem dom domF
       , FT.elem mth monthF
-      , FT.elem dow dowF
+      , checkDOMAndDOW
       ]
+      where
+        -- turns out if neither dom and dow are stars, you're supposed to
+        -- OR and not AND them:
+        --
+        -- Note: The day of a command's execution can
+        -- be specified by two fields — day of month, and day of week. If
+        -- both fields are restricted (i.e., aren't *), the command will
+        -- be run when either field matches the current time. For example,
+        -- ``30 4 1,15 * 5'' would cause a command to be run at 4:30 am on
+        -- the 1st and 15th of each month, plus every Friday. One can,
+        -- however, achieve the desired result by adding a test to the
+        -- command (see the last example in EXAMPLE CRON FILE below).
+        checkDOMAndDOW
+          | restricted (dayOfMonthSpec dayOfMonth) && restricted (dayOfWeekSpec dayOfWeek) = 
+              domMatches || dowMatches
+          | otherwise = domMatches && dowMatches
+        domMatches = FT.elem dom domF
+        dowMatches = FT.elem dow dowF
+        restricted = not . isStar
+        isStar (Field Star) = True
+        isStar _            = False
     (_, mth, dom) = toGregorian d
     (hr, mn) = timeOfDay t
     (_, _, iso8601DOW) = toWeekDate d
