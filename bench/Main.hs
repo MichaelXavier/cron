@@ -13,7 +13,6 @@ import qualified Data.Text            as T
 import           Data.Time
 -------------------------------------------------------------------------------
 import           System.Cron
-import           System.Cron.Parser
 -------------------------------------------------------------------------------
 
 

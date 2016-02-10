@@ -304,7 +304,7 @@ envSet :: CrontabEntry
 envSet = EnvVariable "FOO" "BAR"
 
 entry :: CrontabEntry
-entry = CommandEntry stars "do stuff"
+entry = CommandEntry stars (CronCommand "do stuff")
 
 stars :: CronSchedule
 stars = CronSchedule (mkMinuteSpec' (Field Star))

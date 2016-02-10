@@ -6,7 +6,6 @@ module System.Test.Cron.Schedule
 import           Control.Concurrent
 -------------------------------------------------------------------------------
 import           SpecHelper
-import           System.Cron.Schedule
 -------------------------------------------------------------------------------
 
 

@@ -42,20 +42,21 @@ flag lib-Werror
   manual: True
 
 library
-  Exposed-modules: System.Cron,
-                   System.Cron.Parser,
-                   System.Cron.Schedule
-  other-modules:   System.Cron.Types
+  Exposed-modules:   System.Cron
+                   , System.Cron.Internal.Check
+                   , System.Cron.Parser
+                   , System.Cron.Schedule
+                   , System.Cron.Types
   Hs-source-dirs:  src
   default-language:    Haskell2010
-  build-depends:   base            >= 4 && < 5,
-                   attoparsec      >= 0.10,
-                   text            >= 0.11 && < 2,
-                   time            >= 1.4,
-                   old-locale      >= 1.0,
-                   mtl             >= 2.0.1,
-                   mtl-compat      >= 0.2.1,
-                   semigroups
+  build-depends:     base            >= 4 && < 5
+                   , attoparsec      >= 0.10
+                   , text            >= 0.11 && < 2
+                   , time            >= 1.4
+                   , old-locale      >= 1.0
+                   , mtl             >= 2.0.1
+                   , mtl-compat      >= 0.2.1
+                   , semigroups
   if flag(lib-Werror)
     ghc-options: -Werror
 
@@ -67,21 +68,21 @@ test-suite test
   Main-Is:        Main.hs
   Hs-Source-Dirs: test
   default-language:    Haskell2010
-  other-modules:  SpecHelper,
-                  System.Test.Cron,
-                  System.Test.Cron.Parser,
-                  System.Test.Cron.Schedule
-  Build-Depends:  base,
-                  cron,
-                  tasty,
-                  tasty-hunit,
-                  tasty-quickcheck,
-                  derive,
-                  attoparsec,
-                  text,
-                  time,
-                  transformers-compat,
-                  semigroups
+  other-modules:    SpecHelper
+                  , System.Test.Cron
+                  , System.Test.Cron.Parser
+                  , System.Test.Cron.Schedule
+  Build-Depends:    base
+                  , cron
+                  , tasty
+                  , tasty-hunit
+                  , tasty-quickcheck
+                  , derive
+                  , attoparsec
+                  , text
+                  , time
+                  , transformers-compat
+                  , semigroups
 
   if flag(lib-Werror)
     ghc-options: -Werror
