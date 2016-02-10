@@ -24,7 +24,7 @@ Tested-With:         GHC == 7.4.1
                    , GHC == 7.6.3
                    , GHC == 7.8.3
                    , GHC == 7.10.1
-Cabal-Version:       >= 1.8
+Cabal-Version:       >= 1.10
 Extra-Source-Files:
   README.md
   LICENSE
@@ -43,12 +43,11 @@ flag lib-Werror
 
 library
   Exposed-modules: System.Cron,
-                   --TODO: drop
-                   System.Cron2,
                    System.Cron.Parser,
                    System.Cron.Schedule
   other-modules:   System.Cron.Types
   Hs-source-dirs:  src
+  default-language:    Haskell2010
   build-depends:   base            >= 4 && < 5,
                    attoparsec      >= 0.10,
                    text            >= 0.11 && < 2,
@@ -67,6 +66,11 @@ test-suite test
   Type:           exitcode-stdio-1.0
   Main-Is:        Main.hs
   Hs-Source-Dirs: test
+  default-language:    Haskell2010
+  other-modules:  SpecHelper,
+                  System.Test.Cron,
+                  System.Test.Cron.Parser,
+                  System.Test.Cron.Schedule
   Build-Depends:  base,
                   cron,
                   tasty,
