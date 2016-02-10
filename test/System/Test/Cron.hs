@@ -2,7 +2,8 @@
 module System.Test.Cron (tests) where
 
 -------------------------------------------------------------------------------
-import           Data.List.NonEmpty    (NonEmpty (..))
+import           Data.List                   (find)
+import           Data.List.NonEmpty          (NonEmpty (..))
 import           Data.Time.Clock.POSIX
 -------------------------------------------------------------------------------
 import           SpecHelper
@@ -20,7 +21,7 @@ tests = testGroup "System.Cron"
 
 
 describeScheduleMatches :: TestTree
-describeScheduleMatches = testGroup "ScheduleMatches"
+describeScheduleMatches = testGroup "scheduleMatches"
   [
       testCase "matches a catch-all" $
       scheduleMatches stars (day 5 25 1 2) @?= True
@@ -81,6 +82,17 @@ describeScheduleMatches = testGroup "ScheduleMatches"
       scheduleMatches weekly (UTCTime (fromGregorian 2014 6 5) 600) @?= False
 
     , testCase "only needs weekday or monthday to match" $
+      -- man 5 crontab:
+      -- Note: The day of a command's execution can be specified by two
+      -- fields — day of month, and day of week. If both fields are
+      -- restricted (i.e., aren't *), the command will be run when either
+      -- field matches the current time. For example, ``30 4 1,15 * 5''
+      -- would cause a command to be run at 4:30 am on the 1st and 15th of
+      -- each month, plus every Friday. One can, however, achieve the
+      -- desired result by adding a test to the command (see the last
+      -- example in EXAMPLE CRON FILE below).
+      --
+      -- so we deliberately set the correct day of month but wrong day of week
       scheduleMatches stars { dayOfWeek = mkDayOfWeekSpec' (Field (SpecificField' (mkSpecificField' 1))),
                               dayOfMonth = mkDayOfMonthSpec' (Field (SpecificField' (mkSpecificField' 1))) }
                       (UTCTime (fromGregorian 2014 11 1) 600) @?= True
@@ -241,38 +253,52 @@ describeCrontabEntryShow = testGroup "CrontabEntry Show"
   ]
 
 
---TODO: evidently 0/0 0-0 0-0 */0 0-0 may not be valid
 describeNextMatch :: TestTree
 describeNextMatch = testGroup "nextMatch"
   [ testProperty "is always in the future (at least 1 minute advanced)" $ \cs t ->
       let tSecs = floor (utcTimeToPOSIXSeconds t) :: Integer
           minT2 = posixSecondsToUTCTime (fromInteger ((tSecs `div` 60) + 1) * 60)
-      in case traceShow (cs, t) $ nextMatch cs t of
+      in case nextMatch cs t of
            Just t2 -> t2 >= minT2
            Nothing -> True
   , testProperty "always produces a time that will match the schedule" $ \cs t ->
       case nextMatch cs t of
         Just t2 -> scheduleMatches cs t2
         Nothing -> True
-  -- , testProperty "returns the first minute in the future that matches" $ \cs t ->
-  --     let expected = head (filter (scheduleMatches cs) (take 1000 $ nextMinutes t))
-  --     in nextMatch cs t === expected
+  -- , testCase "special case" $ do
+  --     let Right cs = parseOnly cronSchedule "* * * * *"
+  --         t = mkTime 1858 11 20 0 0 1
+  --     nextMatch cs t @?= Just (mkTime 1858 11 20 0 1 0)
+  -- this test has a really variable workload but is usually quite slow because it has to walk minute by minute until it finds the test case, so we'll set an upper bound here
+  , localOption (QuickCheckTests 20) $ testProperty "returns the first minute in the future that matches" $ \cs t ->
+      case nextMatch cs t of
+        Just res ->
+          let --strat = parList r0
+              Just actual = find (scheduleMatches cs) ((takeWhile (<= res) (nextMinutes t)))
+          in res `sameMinute` actual
+        Nothing -> property True
   ]
 
 
--- nextMinutes :: UTCTime -> [UTCTime]
--- nextMinutes t = [ addMinutes tRounded mins | mins <- [1..]]
---   where
---     addMinutes time mins = addUTCTime (fromInteger (60 * mins)) time
---     -- round down to nearest 60
---     tRounded = t { utctDayTime = roundToMinute (utctDayTime t)}
+sameMinute :: UTCTime -> UTCTime -> Property
+sameMinute t1 t2 = t1' === t2'
+  where
+    t1' = t1 { utctDayTime = roundToMinute (utctDayTime t1)}
+    t2' = t2 { utctDayTime = roundToMinute (utctDayTime t2)}
+
+nextMinutes :: UTCTime -> [UTCTime]
+nextMinutes t = [ addMinutes tRounded mins | mins <- [1..]]
+  where
+    addMinutes time mins = addUTCTime (fromInteger (60 * mins)) time
+    -- round down to nearest 60
+    tRounded = t { utctDayTime = roundToMinute (utctDayTime t)}
 
 
 
--- roundToMinute :: DiffTime -> DiffTime
--- roundToMinute n = secondsToDiffTime (nInt - (nInt `mod` 60))
---   where
---     nInt = round n
+roundToMinute :: DiffTime -> DiffTime
+roundToMinute n = secondsToDiffTime (nInt - (nInt `mod` 60))
+  where
+    nInt = round n
 
 
 envSet :: CrontabEntry

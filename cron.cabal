@@ -82,7 +82,7 @@ test-suite test
   if flag(lib-Werror)
     ghc-options: -Werror
 
-  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -O2 -threaded -rtsopts -with-rtsopts=-N
 
 
 benchmark bench

@@ -11,7 +11,7 @@ import           Control.Applicative   as X
 import           Data.Attoparsec.Text  as X (Parser, parseOnly)
 import           Data.DeriveTH
 import           Data.List.NonEmpty    (NonEmpty (..))
-import           Data.Maybe
+import           Data.Maybe            as X
 import           Data.Time.Calendar    as X
 import           Data.Time.Clock       as X
 import           Data.Time.LocalTime   as X

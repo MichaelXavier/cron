@@ -19,7 +19,6 @@ import           Data.List
 import           Data.List.NonEmpty          (NonEmpty (..))
 import qualified Data.List.NonEmpty          as NE
 import           Data.Maybe
-import           Data.Monoid
 import           Data.Semigroup              (sconcat)
 import           Data.Time
 import           Data.Time.Calendar.WeekDate
@@ -85,9 +84,12 @@ nextMatches' :: Expanded -> UTCTime -> [UTCTime]
 nextMatches' Expanded {..} now = solutions
   where
     -- move to next minute
-    UTCTime startDay startTOD = addUTCTime 60 now
-    solutionTOD = solveTOD hourF minF startTOD
-    solutions = filter validSolution $ [UTCTime d solutionTOD | d <- validDays monthF domF startDay]
+    UTCTime startDay _ = addUTCTime 60 now
+    -- solutionTOD = validTODs hourF minF startTOD
+    solutions = filter validSolution [UTCTime d tod
+                                     | d <- validDays monthF domF startDay
+                                     , tod <- validTODs hourF minF
+                                     ]
     validSolution t = t > now && dowMatch t dowF
 
 
@@ -131,13 +133,13 @@ expand CronSchedule {..} = do
     remapSunday lst = case NE.partition (\n -> n == 0 || n == 7) lst of
                         ([], _)       -> lst
                         (_, noSunday) -> 0 :| noSunday
-    satisfiable Expanded {..} = or [hasValidForMonth m domF | m <- (NE.toList monthF)]
+    satisfiable Expanded {..} = or [hasValidForMonth m domF | m <- (FT.toList monthF)]
 
 
 -------------------------------------------------------------------------------
 expandF :: (Int, Int) -> CronField -> Maybe EField
 expandF rng (Field f)       = expandBF rng f
-expandF rng (ListField fs)  = sconcat <$> FT.mapM (expandBF rng) fs
+expandF rng (ListField fs)  = NE.nub . sconcat <$> FT.mapM (expandBF rng) fs
 expandF rng (StepField' sf) = expandBFStepped rng (sfField sf) (sfStepping sf)
 
 
@@ -174,13 +176,13 @@ expandBF _ (RangeField' rf)    = Just (NE.fromList (enumFromTo (rfBegin rf) (rfE
 
 
 -------------------------------------------------------------------------------
-solveTOD :: EField -> EField -> DiffTime -> DiffTime
-solveTOD hrs mns dt = head dtSequence
+validTODs :: EField -> EField -> [DiffTime]
+validTODs hrs mns = dtSequence
   where
-    (curHour, curMin) = timeOfDay dt
-    minuteSequence = seekCycle curMin mns
-    hourSequence = seekCycle curHour hrs
-    dtSequence = filter (>= dt) (zipWith todToDiffTime hourSequence minuteSequence)
+    minuteSequence = sortBy compare (FT.toList mns)
+    hourSequence = sortBy compare (FT.toList hrs)
+    -- order here ensures we'll count up minutes before hours
+    dtSequence = [ todToDiffTime hr mn | hr <- hourSequence, mn <- minuteSequence]
 
 
 todToDiffTime :: Int -> Int -> DiffTime
@@ -189,10 +191,10 @@ todToDiffTime nextHour nextMin = fromIntegral ((nextHour * 60 * 60) + nextMin * 
 
 -- | Takes a finite non empty list and a desired starting point and
 -- produces an *infinite* non empty list starting at the desired starting point or the next highest
-seekCycle :: Ord a => a -> NonEmpty a -> [a]
-seekCycle needle list = dropWhile (< needle) list' <> cycle list'
-  where
-    list' = sortBy compare (FT.toList list)
+-- seekCycle :: Ord a => a -> NonEmpty a -> [a]
+-- seekCycle needle list = dropWhile (< needle) list' <> cycle list'
+--   where
+--     list' = sortBy compare (FT.toList list)
 
 
 
@@ -261,5 +263,7 @@ scheduleMatches cs (UTCTime d t) = maybe False go (expand cs)
       ]
     (_, mth, dom) = toGregorian d
     (hr, mn) = timeOfDay t
-    dow = oneIndexedDOW - 1
-    (_, _, oneIndexedDOW) = toWeekDate d
+    (_, _, iso8601DOW) = toWeekDate d
+    dow
+      | iso8601DOW == 7 = 0
+      | otherwise       = iso8601DOW
