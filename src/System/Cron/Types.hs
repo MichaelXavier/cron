@@ -1,4 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE RecordWildCards            #-}
 module System.Cron.Types
     ( CronSchedule(..)
     , Crontab(..)
@@ -39,16 +41,20 @@ module System.Cron.Types
     , weekly
     , hourly
     , everyMinute
+    -- * Rendering
+    , serializeCronSchedule
+    , serializeCrontab
     ) where
 
 
 -------------------------------------------------------------------------------
 import qualified Data.Foldable      as FT
 import           Data.Ix
-import           Data.List          (intercalate)
 import           Data.List.NonEmpty (NonEmpty)
 import qualified Data.List.NonEmpty as NE
-import           Data.Text          (Text, unpack)
+import           Data.Monoid
+import           Data.Text          (Text)
+import qualified Data.Text          as T
 -------------------------------------------------------------------------------
 
 
@@ -98,6 +104,18 @@ everyMinute = CronSchedule {
 -------------------------------------------------------------------------------
 
 
+class ShowT a where
+  showT :: a -> Text
+
+
+instance ShowT Text where
+  showT = id
+
+
+instance ShowT Int where
+  showT = T.pack . show
+
+
 -- | Specification for a cron expression
 data CronSchedule = CronSchedule {
       minute     :: MinuteSpec     -- ^ Which minutes to run. First field in a cron specification.
@@ -109,17 +127,19 @@ data CronSchedule = CronSchedule {
 
 
 instance Show CronSchedule where
-  show cs = "CronSchedule " ++ showRaw cs
+  show cs = "CronSchedule " <> T.unpack (showT cs)
 
 
-showRaw :: CronSchedule
-           -> String
-showRaw cs = unwords [ show (minute cs)
-                     , show (hour cs)
-                     , show (dayOfMonth cs)
-                     , show (month cs)
-                     , show (dayOfWeek cs)
-                     ]
+instance ShowT CronSchedule where
+  showT CronSchedule {..} = T.unwords [ showT minute
+                                , showT hour
+                                , showT dayOfMonth
+                                , showT month
+                                , showT dayOfWeek
+                                ]
+
+serializeCronSchedule :: CronSchedule -> Text
+serializeCronSchedule = showT
 
 
 -------------------------------------------------------------------------------
@@ -129,35 +149,45 @@ newtype Crontab = Crontab {
     } deriving (Eq)
 
 
-instance Show Crontab where
-  show (Crontab entries) = intercalate "\n" . map show $ entries
+instance ShowT Crontab where
+  showT (Crontab entries) = T.intercalate "\n" (showT <$> entries)
 
+
+instance Show Crontab where
+  show = T.unpack . showT
+
+
+serializeCrontab :: Crontab -> Text
+serializeCrontab = showT
 
 
 -------------------------------------------------------------------------------
 newtype CronCommand = CronCommand {
       cronCommand :: Text
-    } deriving (Show, Eq, Ord)
+    } deriving (Show, Eq, Ord, ShowT)
 
 
 -------------------------------------------------------------------------------
 -- | Essentially a line in a crontab file. It is either a schedule with a
 -- command after it or setting an environment variable (e.g. FOO=BAR)
 data CrontabEntry = CommandEntry CronSchedule CronCommand
-                  | EnvVariable  Text Text
+                  | EnvVariable Text Text
                   deriving (Eq)
 
 
-instance Show CrontabEntry where
-  show (CommandEntry s (CronCommand c)) = showRaw s ++ " " ++ unpack c
-  show (EnvVariable n v)                = unpack n ++ "=" ++ unpack v
+instance ShowT CrontabEntry where
+  showT (CommandEntry s c) = showT s <> " " <> showT c
+  showT (EnvVariable n v)  = showT n <> "=" <> showT v
 
+
+instance Show CrontabEntry where
+  show = T.unpack . showT
 
 -------------------------------------------------------------------------------
 -- | Minutes field of a cron expression
 newtype MinuteSpec = Minutes {
       minuteSpec :: CronField
-    } deriving (Eq)
+    } deriving (Eq, ShowT)
 
 
 instance Show MinuteSpec where
@@ -175,7 +205,7 @@ mkMinuteSpec cf
 -- | Hours field of a cron expression
 newtype HourSpec = Hours {
       hourSpec :: CronField
-    } deriving (Eq)
+    } deriving (Eq, ShowT)
 
 
 instance Show HourSpec where
@@ -192,7 +222,7 @@ mkHourSpec cf
 -- | Day of month field of a cron expression
 newtype DayOfMonthSpec = DaysOfMonth {
       dayOfMonthSpec :: CronField
-    } deriving (Eq)
+    } deriving (Eq, ShowT)
 
 
 instance Show DayOfMonthSpec where
@@ -209,7 +239,7 @@ mkDayOfMonthSpec cf
 -- | Month field of a cron expression
 newtype MonthSpec = Months {
       monthSpec :: CronField
-    } deriving (Eq)
+    } deriving (Eq, ShowT)
 
 
 instance Show MonthSpec where
@@ -226,7 +256,7 @@ mkMonthSpec cf
 -- | Day of week field of a cron expression
 newtype DayOfWeekSpec = DaysOfWeek {
       dayOfWeekSpec :: CronField
-    } deriving (Eq)
+    } deriving (Eq, ShowT)
 
 
 instance Show DayOfWeekSpec where
@@ -276,20 +306,24 @@ data BaseField = Star                         -- ^ Matches anything
                deriving (Eq)
 
 
+instance ShowT BaseField where
+  showT Star               = "*"
+  showT (SpecificField' f) = showT f
+  showT (RangeField' rf)   = showT rf
+
+
 instance Show BaseField where
-  show Star               = "*"
-  show (SpecificField' f) = show f
-  show (RangeField' rf)   = show rf
+  show = T.unpack . showT
 
 
 -------------------------------------------------------------------------------
 newtype SpecificField = SpecificField {
       specificField :: Int
-    } deriving (Eq)
+    } deriving (Eq, ShowT)
 
 
 instance Show SpecificField where
-  show (SpecificField i) = show i
+  show = T.unpack . showT
 
 
 mkSpecificField :: Int -> Maybe SpecificField
@@ -305,8 +339,12 @@ data RangeField = RangeField {
     } deriving (Eq)
 
 
+instance ShowT RangeField where
+  showT (RangeField x y) = showT x <> "-" <> showT y
+
+
 instance Show RangeField where
-  show (RangeField x y) = show x ++ "-" ++ show y
+  show = T.unpack . showT
 
 
 mkRangeField :: Int -> Int -> Maybe RangeField
@@ -323,21 +361,31 @@ data CronField = Field BaseField
                  deriving (Eq)
 
 
+instance ShowT CronField where
+  showT (Field f)       = showT f
+  showT (ListField xs)  = T.intercalate "," (NE.toList (showT <$> xs))
+  showT (StepField' sf) = showT sf
+
+
+instance Show CronField where
+  show = T.unpack . showT
+
+
+-------------------------------------------------------------------------------
 data StepField = StepField { sfField    :: BaseField
                            , sfStepping :: Int
                            } deriving (Eq)
 
 
+instance ShowT StepField where
+  showT (StepField f step) = showT f <> "/" <> showT step
+
+
 instance Show StepField where
-  show (StepField f step) = show f ++ "/" ++ show step
+  show = T.unpack . showT
+
 
 mkStepField :: BaseField -> Int -> Maybe StepField
 mkStepField bf n
   | n > 0     = Just (StepField bf n)
   | otherwise = Nothing
-
-
-instance Show CronField where
-  show (Field f)       = show f
-  show (ListField xs)  = intercalate "," . NE.toList . NE.map show $ xs
-  show (StepField' sf) = show sf

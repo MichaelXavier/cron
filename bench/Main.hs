@@ -21,6 +21,7 @@ main = defaultMain
   [ parserBenchmarks
   , scheduleMatchesBenchmarks
   , nextMatchBenchmarks
+  , serializeBenchmarks
   ]
 
 
@@ -57,6 +58,15 @@ nextMatchBenchmarks =
     now = mkTime 2016 2 14 0 0 0
 
 -------------------------------------------------------------------------------
+serializeBenchmarks :: Benchmark
+serializeBenchmarks = bgroup "serialization"
+  [
+    bench "cronSchedule" (whnf serializeCronSchedule weekly)
+  , bench "crontab" (whnf serializeCrontab exampleCrontab)
+  ]
+
+
+-------------------------------------------------------------------------------
 parserBench :: String -> Parser a -> Text -> Benchmark
 parserBench n parser txt = bench n (whnf (parseOnly parser) txt)
 
@@ -73,6 +83,14 @@ envSetText = "FOO=BAR"
 -------------------------------------------------------------------------------
 cronTabText :: Text
 cronTabText = T.unlines (concat (zipWith (\x y -> [x,y]) (replicate 50 cronScheduleText) (repeat envSetText)))
+
+
+-------------------------------------------------------------------------------
+exampleCrontab :: Crontab
+exampleCrontab = Crontab (concat (zipWith (\x y -> [x,y]) (replicate 50 cmd) (repeat envSet)))
+  where 
+    cmd = CommandEntry weekly (CronCommand "do something")
+    envSet = EnvVariable "FOO" "BAR"
 
 
 -------------------------------------------------------------------------------
