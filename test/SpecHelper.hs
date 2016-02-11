@@ -32,7 +32,11 @@ $(derive makeArbitrary ''NonEmpty)
 $(derive makeArbitrary ''BaseField)
 $(derive makeArbitrary ''CronField)
 $(derive makeArbitrary ''CronSchedule)
-$(derive makeArbitrary ''Crontab)
+
+
+instance Arbitrary Crontab where
+  arbitrary = Crontab <$> resize 20 arbitrary
+
 
 instance Arbitrary CronCommand where
   arbitrary = CronCommand <$> alphaGen
