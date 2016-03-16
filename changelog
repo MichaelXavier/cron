@@ -1,3 +1,6 @@
+# 0.4.0
+* Various type changes to make it impossible to construct invalid cron schedules.
+* Add nextMatch function for non-polling based schedulers.
 # 0.3.2
 * Add test files to dist
 # 0.3.1
