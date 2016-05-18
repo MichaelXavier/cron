@@ -48,13 +48,14 @@ module System.Cron.Types
 
 
 -------------------------------------------------------------------------------
-import qualified Data.Foldable      as FT
+import           Control.Applicative as A
+import qualified Data.Foldable       as FT
 import           Data.Ix
-import           Data.List.NonEmpty (NonEmpty (..))
-import qualified Data.List.NonEmpty as NE
+import           Data.List.NonEmpty  (NonEmpty (..))
+import qualified Data.List.NonEmpty  as NE
 import           Data.Monoid
-import           Data.Text          (Text)
-import qualified Data.Text          as T
+import           Data.Text           (Text)
+import qualified Data.Text           as T
 -------------------------------------------------------------------------------
 
 
@@ -150,7 +151,7 @@ newtype Crontab = Crontab {
 
 
 instance ShowT Crontab where
-  showT (Crontab entries) = T.intercalate "\n" (showT <$> entries)
+  showT (Crontab entries) = T.intercalate "\n" (showT A.<$> entries)
 
 
 instance Show Crontab where

@@ -2,6 +2,7 @@
 module System.Cron.Internal.Check where
 
 -------------------------------------------------------------------------------
+import           Control.Applicative         as A
 import qualified Data.Foldable               as FT
 import           Data.List
 import           Data.List.NonEmpty          (NonEmpty (..))
@@ -66,7 +67,7 @@ nextMatches daysSource Expanded {..} now = solutions
 
 -------------------------------------------------------------------------------
 dowMatch :: UTCTime -> EField -> Bool
-dowMatch (UTCTime d _) dows = (getDOW d `elem` dows)
+dowMatch (UTCTime d _) dows = (getDOW d `FT.elem` dows)
 
 
 -------------------------------------------------------------------------------
@@ -99,7 +100,7 @@ validDays months days start =
 -- no empties). dow 7 will be normalized to 0 (Sunday)
 expand :: CronSchedule -> Maybe Expanded
 expand CronSchedule {..} = do
-  expanded <- Expanded <$> minF'
+  expanded <- Expanded A.<$> minF'
                        <*> hourF'
                        <*> domF'
                        <*> monthF'
@@ -195,18 +196,18 @@ hasValidForMonth
     -- ^ Month
     -> EField
     -> Bool
-hasValidForMonth 1 days  = minimum days <= 31
-hasValidForMonth 2 days  = minimum days <= 29
-hasValidForMonth 3 days  = minimum days <= 31
-hasValidForMonth 4 days  = minimum days <= 30
-hasValidForMonth 5 days  = minimum days <= 31
-hasValidForMonth 6 days  = minimum days <= 30
-hasValidForMonth 7 days  = minimum days <= 31
-hasValidForMonth 8 days  = minimum days <= 31
-hasValidForMonth 9 days  = minimum days <= 30
-hasValidForMonth 10 days = minimum days <= 31
-hasValidForMonth 11 days = minimum days <= 30
-hasValidForMonth 12 days = minimum days <= 31
+hasValidForMonth 1 days  = FT.minimum days <= 31
+hasValidForMonth 2 days  = FT.minimum days <= 29
+hasValidForMonth 3 days  = FT.minimum days <= 31
+hasValidForMonth 4 days  = FT.minimum days <= 30
+hasValidForMonth 5 days  = FT.minimum days <= 31
+hasValidForMonth 6 days  = FT.minimum days <= 30
+hasValidForMonth 7 days  = FT.minimum days <= 31
+hasValidForMonth 8 days  = FT.minimum days <= 31
+hasValidForMonth 9 days  = FT.minimum days <= 30
+hasValidForMonth 10 days = FT.minimum days <= 31
+hasValidForMonth 11 days = FT.minimum days <= 30
+hasValidForMonth 12 days = FT.minimum days <= 31
 hasValidForMonth _ _     = False
 
 
