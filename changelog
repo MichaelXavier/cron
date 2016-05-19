@@ -1,3 +1,5 @@
+# 0.4.1
+* Compatibility release to get cron building with GHC < 7.10 again.
 # 0.4.0
 * Various type changes to make it impossible to construct invalid cron schedules.
 * Add nextMatch function for non-polling based schedulers.
