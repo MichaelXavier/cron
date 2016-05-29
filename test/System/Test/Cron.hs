@@ -273,8 +273,10 @@ describeNextMatch = testGroup "nextMatch"
   , localOption (QuickCheckTests 20) $ testProperty "returns the first minute in the future that matches" $ \cs t ->
       case nextMatch cs t of
         Just res ->
-          let Just actual = find (scheduleMatches cs) ((takeWhile (<= res) (nextMinutes t)))
-          in res `sameMinute` actual
+          let mactual = find (scheduleMatches cs) ((takeWhile (<= res) (nextMinutes t)))
+          in case mactual of
+             Just actual -> res `sameMinute` actual
+             Nothing -> counterexample ("Could not find a next minute match for " <> show t <> ", expected " <> show res) False
         Nothing -> property True
   , testProperty "a schedule that produces Just for one t will produce it for any t" $ \cs t1 t2 -> isJust (nextMatch cs t1) ==>
       counterexample ("nextMatch produced Just for " <> show t1 <> " but not " <> show t2) 
@@ -300,7 +302,7 @@ nextMinutes t = [ addMinutes tRounded mins | mins <- [1..]]
 roundToMinute :: DiffTime -> DiffTime
 roundToMinute n = secondsToDiffTime (nInt - (nInt `mod` 60))
   where
-    nInt = round n
+    nInt = truncate n
 
 
 envSet :: CrontabEntry
