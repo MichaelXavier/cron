@@ -200,10 +200,9 @@ assertParse parser txt expected = parsed @?= Right expected
 
 
 -------------------------------------------------------------------------------
-assertNoParse :: (Eq a, Show a)
-                 => Parser a
-                 -> Text
-                 -> Assertion
+assertNoParse :: Parser a
+              -> Text
+              -> Assertion
 assertNoParse parser txt = isLeft (parseOnly parser txt) @?= True
 
 
