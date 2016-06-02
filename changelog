@@ -1,3 +1,5 @@
+# 0.4.1.1
+* Fix test suite for Stackage.
 # 0.4.1
 * Compatibility release to get cron building with GHC < 7.10 again.
 # 0.4.0
