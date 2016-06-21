@@ -271,5 +271,7 @@ restricted :: CronField -> Bool
 restricted = not . isStar
 
 isStar :: CronField -> Bool
-isStar (Field Star) = True
-isStar _            = False
+isStar (Field Star)    = True
+isStar (ListField bfs) = FT.any (== Star) bfs
+isStar (StepField' sf) = sfField sf == Star && sfStepping sf == 1
+isStar _               = False

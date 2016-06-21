@@ -279,8 +279,15 @@ describeNextMatch = testGroup "nextMatch"
              Nothing -> counterexample ("Could not find a next minute match for " <> show t <> ", expected " <> show res) False
         Nothing -> property True
   , testProperty "a schedule that produces Just for one t will produce it for any t" $ \cs t1 t2 -> isJust (nextMatch cs t1) ==>
-      counterexample ("nextMatch produced Just for " <> show t1 <> " but not " <> show t2) 
+      counterexample ("nextMatch produced Just for " <> show t1 <> " but not " <> show t2)
                      (isJust (nextMatch cs t2) == True)
+  , testCase "does not match impossible dates (restricted dow/dom bug)" $ do
+      let t = posixSecondsToUTCTime 0
+      let cs = stars { month = mkMonthSpec' (Field (SpecificField' (mkSpecificField' 9)))
+                     , dayOfMonth = mkDayOfMonthSpec' (ListField (SpecificField' (mkSpecificField' 31) :| []))
+                     , dayOfWeek = mkDayOfWeekSpec' (ListField (Star :| []))
+                     }
+      nextMatch cs t @?= Nothing
   ]
 
 
