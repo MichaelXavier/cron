@@ -11,9 +11,10 @@ module SpecHelper
 -------------------------------------------------------------------------------
 import           Control.Applicative       as X
 import           Data.Attoparsec.Text      as X (Parser, parseOnly)
+import qualified Data.List.NonEmpty        as NE
 import           Data.Maybe                as X
 import           Data.Monoid               as X
-import           Data.Proxy                (Proxy(..))
+import           Data.Proxy                (Proxy (..))
 import           Data.Text                 (Text)
 import qualified Data.Text                 as T
 import           Data.Time.Calendar        as X
@@ -52,8 +53,10 @@ instance Arbitrary BaseField where
 
 
 instance Arbitrary CronField where
-  arbitrary = sopArbitrary
-  shrink = genericShrink
+  arbitrary = oneof [ Field <$> arbitrary
+                    , ListField . NE.fromList . getNonEmpty <$> arbitrary
+                    , StepField' <$> arbitrary
+                    ]
 
 
 instance Arbitrary CronSchedule where
