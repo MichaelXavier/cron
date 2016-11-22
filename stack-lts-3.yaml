@@ -1,0 +1,9 @@
+resolver: lts-3.22
+packages:
+- '.'
+extra-deps:
+- 'generics-sop-0.2.2.0'
+flags:
+  cron:
+    lib-Werror: true
+extra-package-dbs: []

@@ -83,7 +83,7 @@ test-suite test
                   , transformers-compat
                   , semigroups
                   , quickcheck-instances
-                  , generics-sop
+                  , generics-sop >= 0.2
 
   if flag(lib-Werror)
     ghc-options: -Werror
