@@ -1,3 +1,6 @@
+# 0.4.2
+* Drop dependency on derive in tests.
+* Add some Generic and Typeable instances.
 # 0.4.1.1
 * Bug fix for checking nextMatch where either the day of month or day of week fields were a singleton list of star.
 # 0.4.1.1
