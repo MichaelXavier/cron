@@ -77,13 +77,13 @@ test-suite test
                   , tasty
                   , tasty-hunit
                   , tasty-quickcheck
-                  , derive
                   , attoparsec
                   , text
                   , time
                   , transformers-compat
                   , semigroups
                   , quickcheck-instances
+                  , generics-sop
 
   if flag(lib-Werror)
     ghc-options: -Werror
