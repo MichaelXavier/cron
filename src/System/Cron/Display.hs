@@ -6,6 +6,8 @@ module System.Cron.Display
   Verbosity(..)
 , displaySchedule
 , describeTime
+, description
+-- , minuteDescriptor
 ) where
 
 import Control.Monad
@@ -26,43 +28,140 @@ viewRD :: CronField -> Maybe RangeField
 viewRD (Field (RangeField' r)) = Just r
 viewRD _                       = Nothing
 
-viewL :: CronField -> Maybe (NonEmpty BaseField)
-viewL (ListField l) = Just l
-viewL _             = Nothing
+viewList :: CronField -> Maybe (NonEmpty BaseField)
+viewList (ListField l) = Just l
+viewList _             = Nothing
 
+-- isStar :: CronField -> Bool
+-- isStar (Field Star) = True
+-- isStar _            = False
+
+--
 -- hasNoSpecialChars :: CronField -> Bool
 -- hasNoSpecialChars (Field (SpecificField' _)) = True
 -- hasNoSpecialChars _                          = False
+
+-- viewStep :: CronField -> Maybe (StepField)
+-- viewStep (StepField' s) = Just s
+-- viewStep _              = Nothing
+
+-- isRange :: CronField -> Bool
+-- isRange (Field (RangeField' _)) = True
+-- isRange _                       = False
 --
--- isRangeDescriptor :: CronField -> Bool
--- isRangeDescriptor (Field (RangeField' _)) = True
--- isRangeDescriptor _                       = False
+-- isList :: CronField -> Bool
+-- isList (ListField _) = True
+-- isList _             = False
 --
--- isListDescriptor :: CronField -> Bool
--- isListDescriptor (ListField _) = True
--- isListDescriptor _             = False
+-- class Describe a where
+--   allDescription      :: a -> String
+--   singleDescription   :: a -> Int -> String
+--   intervalDescription :: a -> String
+--   betweenDescription  :: a -> String
+--   descriptionFormat   :: a -> String
+  -- cronField           :: a -> CronField
+
+data Descriptor = Descriptor {
+    allDescription      :: String
+  , singleDescription   :: Int -> String
+  , intervalDescription :: Int -> String
+  , intervalSuffix      :: BaseField -> Maybe String
+  , betweenDescription  :: Int -> Int -> String
+  }
+
+minuteDescriptor :: Descriptor
+minuteDescriptor = Descriptor {
+    allDescription      = "every minute"
+  , singleDescription   = minSingleDesc
+  , intervalDescription = minInterval
+  , intervalSuffix      = minSuffix
+  , betweenDescription  = minBetweenDesc
+  }
+  where minSuffix Star                = Nothing
+        minSuffix (SpecificField' sf) = Just . minSingleDesc $ specificField sf
+        minSuffix (RangeField' rf)    = Just $ minBetweenDesc (rfBegin rf) (rfEnd rf)
+        minSingleDesc n = "at " ++ show n ++ if n < 2 then " minute" else " minutes" ++ " past the hour"
+        minBetweenDesc b e = "between minutes " ++ show b ++ " and " ++ show e ++ " past the hour"
+        minInterval n = "every " ++ if n < 2 then " minute" else show n ++ " minutes" ++ " past the hour"
+
+hourDescriptor :: Descriptor
+hourDescriptor = Descriptor {
+    allDescription      = "every hour"
+  , singleDescription   = hourSingleDesc
+  , intervalDescription = hourInterval
+  , intervalSuffix      = hourSuffix
+  , betweenDescription  = hourBetweenDesc
+  }
+  where hourSuffix Star                = Nothing
+        hourSuffix (SpecificField' sf) = Just . hourSingleDesc $ specificField sf
+        hourSuffix (RangeField' rf)    = Just $ hourBetweenDesc (rfBegin rf) (rfEnd rf)
+        hourSingleDesc n = "at " ++ toHour n
+        hourBetweenDesc b e = "between " ++ toHour b ++ " and " ++ toHour e
+        hourInterval n = "every " ++ if n < 2 then " hour" else show n ++ " hours"
+        toHour n = leftPad n ++ ":00"
+
+-- class Describe a where
+--   descriptor :: a -> Descriptor
+--
+-- instance Describe MinuteSpec where
+--   descriptor
+
+description :: CronField -> Descriptor -> String
+description cf d = describeCronField cf
+  where
+    describeCronField (Field bf) = describeBaseField d bf
+
+    describeCronField (StepField' s) =
+      let interval = intervalDescription d $ sfStepping s
+          isuffix  = intervalSuffix d $ sfField s
+        in maybe interval ((interval ++ ", starting ") ++) isuffix
+
+    describeCronField (ListField ls) = describeListFields (describeBaseField d) ls
+
+    describeBaseField desc Star = allDescription desc
+
+    describeBaseField desc (RangeField' r) = betweenDescription desc (rfBegin r) (rfEnd r)
+
+    describeBaseField desc (SpecificField' s) = singleDescription desc $ specificField s
+
+describeListFields :: (BaseField -> String) -> NonEmpty BaseField -> String
+describeListFields f (l :| ls) =
+  ("at " ++) . either id (intercalate ", ") . foldM describe [] $ reverse (l:ls)
+  where describe _ Star = Left $ f Star
+        describe e bf   = Right $ f bf : e
 
 describeTime :: MinuteSpec -> HourSpec -> String
 describeTime (viewSF . minuteSpec -> Just m) (viewSF . hourSpec -> Just h) = "at " ++ formatTime m h
 describeTime (viewRD . minuteSpec -> Just m) (viewSF . hourSpec -> Just h) = "every minute between " ++ time (rfBegin m) h ++ " and " ++ time (rfEnd m) h
-describeTime (viewSF . minuteSpec -> Just m) (viewL . hourSpec -> Just h)  = describeMultHours m h
-describeTime (minuteSpec -> _) (hourSpec -> _) = undefined
+describeTime (viewSF . minuteSpec -> Just m) (viewList . hourSpec -> Just h)  = describeMultHours m h
+describeTime (minuteSpec -> m) (hourSpec -> h) =
+  description m minuteDescriptor ++ ", " ++ description h hourDescriptor
 
 describeMultHours :: SpecificField -> NonEmpty BaseField -> String
-describeMultHours minuteSF (h :| hs) =
-  either id (("at " ++) . intercalate ", ") . foldM describe [] $ reverse (h:hs)
-  where
-    describe _ Star = Left $ "at " ++ show (specificField minuteSF) ++ " minutes past the hour, every hour"
-    describe e f    = Right $ formatBaseField f : e
-      where formatBaseField (SpecificField' s) = formatTime minuteSF s
-            formatBaseField (RangeField' r)    = show (specificField minuteSF) ++ " minutes past the hour, between " ++ leftPad (rfBegin r) ++ " and " ++ leftPad (rfEnd r)
-            formatBaseField _                  = fail "unexpected"
+describeMultHours minuteSF = describeListFields (formatBaseField minuteSF)
+  where formatBaseField msf (SpecificField' s) = formatTime msf s
+        formatBaseField msf (RangeField' r)    = show (specificField msf) ++ " minutes past the hour, between " ++ leftPad (rfBegin r) ++ " and " ++ leftPad (rfEnd r)
+        formatBaseField msf Star               = show (specificField msf) ++ " minutes past the hour, every hour"
 
 time :: Int -> SpecificField -> String
 time minute' hourF = leftPad (specificField hourF) ++ ":" ++ leftPad minute'
 
 formatTime :: SpecificField -> SpecificField -> String
 formatTime minuteF hourF = time (specificField minuteF) hourF
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 newtype Placeholder = Placeholder {
     getPlaceholder :: String

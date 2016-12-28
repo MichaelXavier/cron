@@ -89,4 +89,25 @@ describeDisplayTime = testGroup "describeDisplayTime"
         "at 1 minutes past the hour, every hour" @=? describeTime (mkMinuteSpec' (Field (SpecificField' (mkSpecificField' 1))))
                                                                   (mkHourSpec'   (ListField (SpecificField' (mkSpecificField' 2) :| [Star])))
     ]
+  , testGroup "displays other times" [
+      testCase "every minute, every hour" $
+        "every minute, every hour" @=? describeTime (mkMinuteSpec' (Field Star))
+                                                    (mkHourSpec'   (Field Star))
+    , testCase "range of minutes, range of hours" $
+        "between minutes 10 and 15 past the hour, between 01:00 and 03:00" @=?
+        describeTime (mkMinuteSpec' (Field (RangeField' (mkRangeField' 10 15))))
+                     (mkHourSpec'   (Field (RangeField' (mkRangeField' 1 3))))
+    , testCase "range of minutes, every hour" $
+        "between minutes 10 and 15 past the hour, every hour" @=?
+        describeTime (mkMinuteSpec' (Field (RangeField' (mkRangeField' 10 15))))
+                     (mkHourSpec'   (Field Star))
+    , testCase "range of minutes, interval of hours" $
+        "between minutes 10 and 15 past the hour, every 3 hours, starting at 03:00" @=?
+        describeTime (mkMinuteSpec' (Field (RangeField' (mkRangeField' 10 15))))
+                     (mkHourSpec'   (StepField' (mkStepField' (SpecificField' (mkSpecificField' 3)) 3)))
+    , testCase "list of minutes, at an hour" $
+        "every minute, at 03:00" @=?
+        describeTime (mkMinuteSpec' (ListField (SpecificField' (mkSpecificField' 2) :| [Star])))
+                     (mkHourSpec'   (Field (SpecificField' (mkSpecificField' 3))))
+    ]
   ]
