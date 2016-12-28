@@ -1,3 +1,5 @@
+{-# LANGUAGE ExistentialQuantification #-}
+
 module System.Cron.Display
 (
   Verbosity(..)
@@ -7,7 +9,8 @@ module System.Cron.Display
 import System.Cron.Types
 import Data.Char           (toUpper)
 import Data.List.NonEmpty  (NonEmpty (..))
-import Data.List           (intercalate)
+import qualified Data.List.NonEmpty as N hiding (NonEmpty (..))
+import Data.List           (intercalate, dropWhileEnd)
 
 newtype Placeholder = Placeholder {
     getPlaceholder :: String
@@ -42,6 +45,29 @@ displayCronField ph (ListField (a :| as)) =
   intercalate ", " $ displayBaseField ph a : map (displayBaseField ph) as
 displayCronField ph (StepField' sf) = displayStepField ph sf
 
+data DisplayableField = forall a. (HasCronField a, Display a) => Displayable a
+
+hide :: (HasCronField a, Display a) => a -> DisplayableField
+hide = Displayable
+
+class HasCronField a where
+  getCronField :: a -> CronField
+
+instance HasCronField MinuteSpec where
+  getCronField = minuteSpec
+
+instance HasCronField HourSpec where
+  getCronField = hourSpec
+
+instance HasCronField DayOfMonthSpec where
+  getCronField = dayOfMonthSpec
+
+instance HasCronField MonthSpec where
+  getCronField = monthSpec
+
+instance HasCronField DayOfWeekSpec where
+  getCronField = dayOfWeekSpec
+
 class Display a where
   display :: a -> String
 
@@ -60,17 +86,31 @@ instance Display MonthSpec where
 instance Display DayOfWeekSpec where
   display = displayCronField (Placeholder "weekday") . dayOfWeekSpec
 
-
 data Verbosity = Verbose | NonVerbose
 
 -- | Given a verbosity level and a CronSchedule, convert it into a
 -- human readable string
 displaySchedule :: Verbosity -> CronSchedule -> String
-displaySchedule _ cs = format . intercalate ", " $
-  display (minute cs)     :
-  display (hour cs)       :
-  display (dayOfMonth cs) :
-  display (month cs)      :
-  [display (dayOfWeek cs)]
+displaySchedule v cs =
+  format . intercalate ", " . getList . N.map unwrapDisplay . verbosify v $
+      hide (minute cs) :|
+    [
+      hide $ hour cs
+    , hide $ dayOfMonth cs
+    , hide $ month cs
+    , hide $ dayOfWeek cs
+    ]
   where
-    format (x:xs) = toUpper x : xs
+    getList (x :| xs) = x : xs
+
+    format []         = []
+    format (x : xs)   = toUpper x : xs
+
+    verbosify NonVerbose (c :| cfs) = c :| dropWhileEnd unwrapIsStar cfs
+    verbosify Verbose    cfs        = cfs
+
+    isStar (Field Star) = True
+    isStar _            = False
+
+    unwrapDisplay (Displayable a) = display a
+    unwrapIsStar  (Displayable a) = isStar $ getCronField a

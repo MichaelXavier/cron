@@ -20,29 +20,29 @@ describeDisplayCronSchedule = testGroup "displayCronSchedule"
   [
       testGroup "displays all stars" [
         testCase "verbose" $
-          "Every minute, every hour, every day" @=? displaySchedule Verbose stars
+          "Every minute, every hour, every day, every month, every weekday" @=? displaySchedule Verbose stars
         , testCase "non-verbose" $
           "Every minute" @=? displaySchedule NonVerbose stars
     ]
     , testGroup "displays specific values" [
         testCase "verbose" $
-          "" @=? displaySchedule Verbose specificValue
+          "" @=? displaySchedule NonVerbose specificValue
     ]
     , testGroup "displays list values" [
         testCase "verbose" $
-          "" @=? displaySchedule Verbose listValue
+          "" @=? displaySchedule NonVerbose listValue
     ]
     , testGroup "displays range values" [
         testCase "verbose" $
-          "" @=? displaySchedule Verbose rangeValue
+          "" @=? displaySchedule NonVerbose rangeValue
     ]
     , testGroup "displays step values" [
         testCase "verbose" $
-          "" @=? displaySchedule Verbose stepValue
+          "" @=? displaySchedule NonVerbose stepValue
     ]
     , testGroup "displays other values" [
         testCase "verbose" $
-          "" @=? displaySchedule Verbose combo
+          "" @=? displaySchedule NonVerbose combo
     ]
   ]
   where
