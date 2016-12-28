@@ -1,5 +1,7 @@
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell       #-}
 module SpecHelper
     ( module X
     , module SpecHelper
@@ -9,16 +11,19 @@ module SpecHelper
 -------------------------------------------------------------------------------
 import           Control.Applicative       as X
 import           Data.Attoparsec.Text      as X (Parser, parseOnly)
-import           Data.DeriveTH
-import           Data.List.NonEmpty        (NonEmpty (..))
+import qualified Data.List.NonEmpty        as NE
 import           Data.Maybe                as X
 import           Data.Monoid               as X
+import           Data.Proxy                (Proxy (..))
 import           Data.Text                 (Text)
 import qualified Data.Text                 as T
 import           Data.Time.Calendar        as X
 import           Data.Time.Clock           as X
 import           Data.Time.LocalTime       as X
 import           Debug.Trace               as X
+import qualified Generics.SOP              as SOP
+import qualified Generics.SOP.GGP          as SOP
+import           GHC.Generics              (Generic)
 import           Test.QuickCheck.Instances ()
 import           Test.Tasty                as X
 import           Test.Tasty.HUnit          as X
@@ -28,10 +33,35 @@ import           System.Cron               as X
 -------------------------------------------------------------------------------
 
 
-$(derive makeArbitrary ''NonEmpty)
-$(derive makeArbitrary ''BaseField)
-$(derive makeArbitrary ''CronField)
-$(derive makeArbitrary ''CronSchedule)
+-- this workaround is in place until we successfully beat down the
+-- doors of castle QuickCheck and get generic deriving through. See
+-- <https://github.com/nick8325/quickcheck/pull/40>
+sopArbitrary :: (Generic a, SOP.GTo a, SOP.All SOP.SListI (SOP.GCode a), SOP.All2 Arbitrary (SOP.GCode a)) => Gen a
+sopArbitrary = fmap SOP.gto sopArbitrary'
+
+
+sopArbitrary' :: (SOP.All SOP.SListI xss, SOP.All2 Arbitrary xss) => Gen (SOP.SOP SOP.I xss)
+sopArbitrary' = oneof (map SOP.hsequence $ SOP.apInjs_POP $ SOP.hcpure p arbitrary)
+  where
+    p :: Proxy Arbitrary
+    p = Proxy
+
+
+instance Arbitrary BaseField where
+  arbitrary = sopArbitrary
+  shrink = genericShrink
+
+
+instance Arbitrary CronField where
+  arbitrary = oneof [ Field <$> arbitrary
+                    , ListField . NE.fromList . getNonEmpty <$> arbitrary
+                    , StepField' <$> arbitrary
+                    ]
+
+
+instance Arbitrary CronSchedule where
+  arbitrary = sopArbitrary
+  shrink = genericShrink
 
 
 instance Arbitrary Crontab where
