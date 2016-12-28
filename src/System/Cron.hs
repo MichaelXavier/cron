@@ -4,7 +4,7 @@ module System.Cron
     ( module System.Cron.Types
     , module System.Cron.Parser
     , module System.Cron.Schedule
-    , module System.Cron.Display
+    , module System.Cron.Describe
     , scheduleMatches
     , nextMatch
     ) where
@@ -12,7 +12,7 @@ module System.Cron
 
 -------------------------------------------------------------------------------
 import           System.Cron.Internal.Check
-import           System.Cron.Display
+import           System.Cron.Describe
 import           System.Cron.Parser
 import           System.Cron.Schedule
 import           System.Cron.Types

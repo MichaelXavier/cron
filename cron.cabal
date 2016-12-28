@@ -46,6 +46,7 @@ library
   Exposed-modules:   System.Cron
                    , System.Cron.Internal.Check
                    , System.Cron.Display
+                   , System.Cron.Describe
                    , System.Cron.Parser
                    , System.Cron.Schedule
                    , System.Cron.Types
