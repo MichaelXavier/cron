@@ -44,6 +44,7 @@ flag lib-Werror
 library
   Exposed-modules:   System.Cron
                    , System.Cron.Internal.Check
+                   , System.Cron.Display
                    , System.Cron.Parser
                    , System.Cron.Schedule
                    , System.Cron.Types
@@ -70,6 +71,7 @@ test-suite test
   default-language:    Haskell2010
   other-modules:    SpecHelper
                   , System.Test.Cron
+                  , System.Test.Cron.Display
                   , System.Test.Cron.Parser
                   , System.Test.Cron.Schedule
   Build-Depends:    base
