@@ -32,6 +32,7 @@ Extra-Source-Files:
   test/Main.hs
   test/SpecHelper.hs
   test/System/Test/Cron.hs
+  test/System/Test/Cron/Display.hs
   test/System/Test/Cron/Parser.hs
   test/System/Test/Cron/Schedule.hs
 Homepage:           http://github.com/michaelxavier/cron
