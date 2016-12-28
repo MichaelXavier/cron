@@ -11,6 +11,7 @@ import           SpecHelper
 tests :: TestTree
 tests = testGroup "System.Cron.Display"
   [ describeDisplayCronSchedule
+  , describeDisplayTime
   ]
 
 
@@ -64,3 +65,28 @@ describeDisplayCronSchedule = testGroup "displayCronSchedule"
                         dayOfMonth  = mkDayOfMonthSpec' (StepField' (mkStepField' (RangeField' (mkRangeField' 2 10)) 4)) }
 
     combo = stars { minute     = mkMinuteSpec' (StepField' (mkStepField' (RangeField' (mkRangeField' 1 59)) 2)) }
+
+
+-------------------------------------------------------------------------------
+describeDisplayTime :: TestTree
+describeDisplayTime = testGroup "describeDisplayTime"
+  [
+    testCase "displays specific times" $
+      "at 02:01" @=? describeTime (mkMinuteSpec' (Field (SpecificField' (mkSpecificField' 1))))
+                                  (mkHourSpec'   (Field (SpecificField' (mkSpecificField' 2))))
+  , testCase "displays a range of minutes" $
+      "every minute between 02:01 and 02:10" @=? describeTime (mkMinuteSpec' (Field (RangeField' (mkRangeField' 1 10))))
+                                                              (mkHourSpec'   (Field (SpecificField' (mkSpecificField' 2))))
+  , testGroup "displays times for lists of hours" [
+      testCase "simple list of hours" $
+        "at 02:01, 03:01" @=? describeTime (mkMinuteSpec' (Field (SpecificField' (mkSpecificField' 1))))
+                                           (mkHourSpec'   (ListField (SpecificField' (mkSpecificField' 2) :| [SpecificField' (mkSpecificField' 3)])))
+    , testCase "list of hours, and range" $
+        "at 02:01, 03:01, 1 minutes past the hour, between 04 and 11" @=?
+        describeTime (mkMinuteSpec' (Field (SpecificField' (mkSpecificField' 1))))
+                     (mkHourSpec'   (ListField (SpecificField' (mkSpecificField' 2) :| [SpecificField' (mkSpecificField' 3), RangeField' (mkRangeField' 4 11) ] )))
+    , testCase "list of hours, and star" $
+        "at 1 minutes past the hour, every hour" @=? describeTime (mkMinuteSpec' (Field (SpecificField' (mkSpecificField' 1))))
+                                                                  (mkHourSpec'   (ListField (SpecificField' (mkSpecificField' 2) :| [Star])))
+    ]
+  ]

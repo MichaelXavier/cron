@@ -8,6 +8,7 @@ module System.Cron.Display
 , describeTime
 ) where
 
+import Control.Monad
 import System.Cron.Types
 import Data.Char           (toUpper)
 import Data.List.NonEmpty  (NonEmpty (..))
@@ -45,31 +46,17 @@ describeTime :: MinuteSpec -> HourSpec -> String
 describeTime (viewSF . minuteSpec -> Just m) (viewSF . hourSpec -> Just h) = "at " ++ formatTime m h
 describeTime (viewRD . minuteSpec -> Just m) (viewSF . hourSpec -> Just h) = "every minute between " ++ time (rfBegin m) h ++ " and " ++ time (rfEnd m) h
 describeTime (viewSF . minuteSpec -> Just m) (viewL . hourSpec -> Just h)  = describeMultHours m h
-describeTime _ _ = undefined
--- describeTime mins hours
---   | hasNoSpecialChars minCF && hasNoSpecialChars hourCF = undefined--mkTime minCF hourCF
---   | isRangeDescriptor minCF && hasNoSpecialChars hourCF = undefined
---   | hasNoSpecialChars minCF && isListDescriptor  hourCF = undefined
---   | otherwise                                           = undefined --describe minCF hourCF
-  -- where
-  --   minCF  = minuteSpec mins
-  --   hourCF = hourSpec hours
-    -- describeFields (Field (SpecificField' mf)) (Field (SpecificField' hf)) =
-    --   formatTime mf hf
+describeTime (minuteSpec -> _) (hourSpec -> _) = undefined
 
 describeMultHours :: SpecificField -> NonEmpty BaseField -> String
-describeMultHours minuteSF (h :| hs) = either id (("at " ++) . intercalate ", ") $ describe (h : hs)
-  -- | hasStar (h : hs) = "at " ++ specificField minuteSf ++ " minutes past the hour, every hour"
-  -- | otherwise
-  where -- hasStar = elem (\Star -> True)
-    describe []       = Right []
-    describe (Star:_) = Left $ "at " ++ show (specificField minuteSF) ++ " minutes past the hour, every hour"
-    describe (o:os)   = Right . (:) (formatBaseField o) =<< describe os
+describeMultHours minuteSF (h :| hs) =
+  either id (("at " ++) . intercalate ", ") . foldM describe [] $ reverse (h:hs)
+  where
+    describe _ Star = Left $ "at " ++ show (specificField minuteSF) ++ " minutes past the hour, every hour"
+    describe e f    = Right $ formatBaseField f : e
       where formatBaseField (SpecificField' s) = formatTime minuteSF s
-            formatBaseField (RangeField' r)    = show (specificField minuteSF) ++ " minutes past the hour, between " ++ show (rfBegin r) ++ " and " ++ show (rfEnd r)
-    -- describe ((SpecificField' s):hs) = describe =<< describe hs
-    -- describe ((RangeField' r):hs)    = describe =<< describe hs
-
+            formatBaseField (RangeField' r)    = show (specificField minuteSF) ++ " minutes past the hour, between " ++ leftPad (rfBegin r) ++ " and " ++ leftPad (rfEnd r)
+            formatBaseField _                  = fail "unexpected"
 
 time :: Int -> SpecificField -> String
 time minute' hourF = leftPad (specificField hourF) ++ ":" ++ leftPad minute'
