@@ -71,7 +71,7 @@ describeTime :: MinuteSpec -> HourSpec -> Time
 describeTime (viewSF . minuteSpec -> Just m) (viewSF . hourSpec -> Just h) =
   ConcreteTime $ "at " ++ formatTime m h
 describeTime (viewRD . minuteSpec -> Just m) (viewSF . hourSpec -> Just h) =
-  ConcreteTime $ unwords ["every minute between ",
+  ConcreteTime $ unwords ["every minute between",
                           time (rfBegin m) h,
                           "and",
                           time (rfEnd m) h]
