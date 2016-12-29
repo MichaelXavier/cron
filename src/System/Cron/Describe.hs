@@ -9,8 +9,7 @@ module System.Cron.Describe
 
 import Control.Monad
 import System.Cron.Types
-import Data.List.NonEmpty                 (NonEmpty (..))
-import Data.Maybe                         (isJust, fromJust)
+import Data.List.NonEmpty                 (NonEmpty (..), toList)
 import System.Cron.Internal.DescribeTypes
 import System.Cron.Internal.DescribeUtils
 
@@ -83,16 +82,19 @@ describeTime (minuteSpec -> m) (hourSpec -> h) =
 
 
 describeMultHours :: SpecificField -> NonEmpty BaseField -> Time
-describeMultHours minuteSF ls@(bf :| bfs)
-  | all isJust formattedTimes = ConcreteTime $ "at " ++ joinWords (map fromJust formattedTimes)
-  | otherwise = Other (return describedMinute)
-                      (return $ describeCronField hourDescriptor (ListField ls))
-  where formattedTimes = map formatBaseField (bf : bfs)
+describeMultHours minuteSF ls =
+  maybe otherTime (formatAllFields . toList) $ traverse formatBaseField ls
+  where hourCF   = ListField ls
+        minuteCF = Field (SpecificField' minuteSF)
+        formatAllFields = ConcreteTime . ("at " ++) . joinWords
+        otherTime = Other (return describedMinute)
+                          (return $ describeCronField hourDescriptor hourCF)
         formatBaseField (SpecificField' s) = Just $ formatTime minuteSF s
-        formatBaseField f@(RangeField' _)  = Just $ unwords [show describedMinute, show $ describeCronField hourDescriptor (Field f)]
-        formatBaseField _                  = Nothing
-        describedMinute = describeCronField minuteDescriptor (Field (SpecificField' minuteSF))
-
+        formatBaseField Star               = Nothing
+        formatBaseField f@(RangeField' _)  =
+          Just $ unwords [show describedMinute,
+                          show $ describeCronField hourDescriptor (Field f)]
+        describedMinute = describeCronField minuteDescriptor minuteCF
 
 description :: CronSchedule -> Description
 description cs = Desc (describeTime (minute cs) (hour cs))
