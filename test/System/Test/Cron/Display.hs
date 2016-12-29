@@ -4,7 +4,6 @@ module System.Test.Cron.Display (tests) where
 
 -------------------------------------------------------------------------------
 import           Data.List.NonEmpty (NonEmpty (..))
--- import           Data.Text          (Text)
 -------------------------------------------------------------------------------
 import           SpecHelper
 -------------------------------------------------------------------------------
@@ -50,24 +49,6 @@ describeDisplayCronSchedule = testGroup "displayCronSchedule"
   ]
   where
     mkCronSchedule t = let (Right cs) = parseCronSchedule t in cs
-    -- stars = CronSchedule (mkMinuteSpec' (Field Star))
-    --                      (mkHourSpec' (Field Star))
-    --                      (mkDayOfMonthSpec' (Field Star))
-    --                      (mkMonthSpec' (Field Star))
-    --                      (mkDayOfWeekSpec' (Field Star))
-    --
-    -- specificValue = stars { minute      = mkMinuteSpec' (Field (SpecificField' (mkSpecificField' 1))),
-    --                         hour        = mkHourSpec' (Field (SpecificField' (mkSpecificField' 2))),
-    --                         dayOfMonth  = mkDayOfMonthSpec' (Field (SpecificField' (mkSpecificField' 3))) }
-    --
-    -- listValue = stars { dayOfMonth  = mkDayOfMonthSpec' (ListField (SpecificField' (mkSpecificField' 3) :| [SpecificField' (mkSpecificField' 4)])) }
-    --
-    -- rangeValue = stars { dayOfMonth  = mkDayOfMonthSpec' (Field (RangeField' (mkRangeField' 3 4))) }
-    --
-    -- stepValue = stars { minute      = mkMinuteSpec' (StepField' (mkStepField' Star 2)),
-    --                     dayOfMonth  = mkDayOfMonthSpec' (StepField' (mkStepField' (RangeField' (mkRangeField' 2 10)) 4)) }
-    --
-    -- combo = stars { minute     = mkMinuteSpec' (StepField' (mkStepField' (RangeField' (mkRangeField' 1 59)) 2)) }
 
 
 -------------------------------------------------------------------------------

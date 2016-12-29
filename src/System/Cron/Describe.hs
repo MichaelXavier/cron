@@ -1,16 +1,9 @@
-{-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE ViewPatterns #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module System.Cron.Describe
 (
-  -- Verbosity(..)
--- , displaySchedule
   describeTime
--- , describe
 , describe
--- , description
--- , minuteDescriptor
 ) where
 
 import Control.Monad
