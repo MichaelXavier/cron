@@ -2,9 +2,6 @@
 
 module System.Test.Cron.Display (tests) where
 
--------------------------------------------------------------------------------
-import           Data.List.NonEmpty (NonEmpty (..))
--------------------------------------------------------------------------------
 import           SpecHelper
 -------------------------------------------------------------------------------
 
@@ -12,7 +9,6 @@ import           SpecHelper
 tests :: TestTree
 tests = testGroup "System.Cron.Display"
   [ describeDisplayCronSchedule
-  , describeDisplayTime
   ]
 
 
@@ -22,80 +18,89 @@ describeDisplayCronSchedule = testGroup "displayCronSchedule"
   [
       testGroup "displays all stars" [
         testCase "verbose" $
-          "Every minute, every hour, every day, every month, every day of the week" @=? describe (mkCronSchedule "* * * * *")
-        , testCase "non-verbose" $
-          "Every minute" @=? describe (mkCronSchedule "* * * * *")
+          "Every minute, every hour, every day, every day of the week" @=? describeV "* * * * *"
+
+      , testCase "non-verbose" $
+          "Every minute" @=? describeNV "* * * * *"
     ]
     , testGroup "displays specific values" [
         testCase "verbose" $
-          "" @=? describe (mkCronSchedule "1 2 3 * *")
+          "At 02:01, on day 3 of the month, every day of the week" @=? describeV "1 2 3 * *"
+
+      , testCase "non-verbose" $
+          "At 02:01, on day 3 of the month" @=? describeNV "1 2 3 * *"
     ]
     , testGroup "displays list values" [
         testCase "verbose" $
-          "" @=? describe (mkCronSchedule "* * 3,5 * *")
+          "Every minute, every hour, on days 3 and 5 of the month, every day of the week" @=? describeV "* * 3,5 * *"
+
+      , testCase "non-verbose" $
+          "Every minute, on days 3 and 5 of the month" @=? describeNV "* * 3,5 * *"
     ]
     , testGroup "displays range values" [
         testCase "verbose" $
-          "" @=? describe (mkCronSchedule "* * 3-4 * *")
+          "Every minute, every hour, between days 3 and 4 of the month, every day of the week" @=? describeV "* * 3-4 * *"
+
+      , testCase "non-verbose" $
+          "Every minute, between days 3 and 4 of the month" @=? describeNV "* * 3-4 * *"
     ]
     , testGroup "displays step values" [
         testCase "verbose" $
-          "" @=? describe (mkCronSchedule "*/2 * 2-10/4 * *")
+          "Every 2 minutes, every hour, every 4 days, between days 2 and 10 of the month, every day of the week" @=? describeV "*/2 * 2-10/4 * *"
+
+      , testCase "non-verbose" $
+          "Every 2 minutes, every 4 days, between days 2 and 10 of the month" @=? describeNV "*/2 * 2-10/4 * *"
     ]
     , testGroup "displays other values" [
         testCase "verbose" $
-          "" @=? describe (mkCronSchedule "1-59/2 * * 2 3-5")
+          "Every 2 minutes, minutes 1 through 59 past the hour, every hour, every day, Tuesday through Thursday, only in February" @=? describeV "1-59/2 * * 2 3-5"
+
+      , testCase "non-verbose" $
+          "Every 2 minutes, minutes 1 through 59 past the hour, Tuesday through Thursday, only in February" @=? describeNV "1-59/2 * * 2 3-5"
+    ]
+    ,
+    testGroup "displays complicated times" [
+      testCase "displays specific times" $
+        "At 02:01, every day, every day of the week" @=? describeV "1 2 * * *"
+
+    , testCase "displays a range of minutes" $
+        "Every minute between 02:01 and 02:10, every day, every day of the week" @=? describeV "1-10 2 * * *"
+
+    , testGroup "displays times for lists of hours" [
+        testCase "simple list of hours" $
+          "At 02:01 and 03:01, every day, every day of the week" @=? describeV "1 2,3 * * *"
+
+      , testCase "list of hours, and range" $
+          "At 02:01, 03:01 and at 1 minutes past the hour between 04:00 and 11:00, every day, every day of the week" @=?
+          describeV "1 2,3,4-11 * * *"
+
+      , testCase "list of hours, and star" $
+          "At 1 minutes past the hour, every hour, every day, every day of the week" @=? describeV "1 2,* * * *"
+      ]
+    , testGroup "displays other times" [
+        testCase "range of minutes, range of hours" $
+          "Minutes 10 through 15 past the hour, between 01:00 and 03:00, every day, every day of the week" @=?
+          describeV "10-15 1-3 * * *"
+
+      , testCase "range of minutes, every hour" $
+          "Minutes 10 through 15 past the hour, every hour, every day, every day of the week" @=?
+          describeV "10-15 * * * *"
+
+      , testCase "range of minutes, interval of hours" $
+          "Minutes 10 through 15 past the hour, every 3 hours, starting at 03:00, every day, every day of the week" @=?
+          describeV "10-15 3/3 * * *"
+
+      , testCase "list of minutes, at an hour" $
+          "Every minute, at 03:00, every day, every day of the week" @=?
+          describeV "2,* 3 * * *"
+
+      , testCase "step minutes, step hours" $
+          "Every 3 minutes, minutes 10 through 15 past the hour, every 5 hours, starting at 10:00, every day, every day of the week" @=?
+          describeV "10-15/3 10/5 * * *"
+      ]
     ]
   ]
   where
     mkCronSchedule t = let (Right cs) = parseCronSchedule t in cs
-
-
--------------------------------------------------------------------------------
-describeDisplayTime :: TestTree
-describeDisplayTime = testGroup "describeDisplayTime"
-  [
-    testCase "displays specific times" $
-      "at 02:01" @=? describeTime (mkMinuteSpec' (Field (SpecificField' (mkSpecificField' 1))))
-                                  (mkHourSpec'   (Field (SpecificField' (mkSpecificField' 2))))
-  , testCase "displays a range of minutes" $
-      "every minute between 02:01 and 02:10" @=? describeTime (mkMinuteSpec' (Field (RangeField' (mkRangeField' 1 10))))
-                                                              (mkHourSpec'   (Field (SpecificField' (mkSpecificField' 2))))
-  , testGroup "displays times for lists of hours" [
-      testCase "simple list of hours" $
-        "at 02:01, 03:01" @=? describeTime (mkMinuteSpec' (Field (SpecificField' (mkSpecificField' 1))))
-                                           (mkHourSpec'   (ListField (SpecificField' (mkSpecificField' 2) :| [SpecificField' (mkSpecificField' 3)])))
-    , testCase "list of hours, and range" $
-        "at 02:01, 03:01, at 1 minutes past the hour between 04:00 and 11:00" @=?
-        describeTime (mkMinuteSpec' (Field (SpecificField' (mkSpecificField' 1))))
-                     (mkHourSpec'   (ListField (SpecificField' (mkSpecificField' 2) :| [SpecificField' (mkSpecificField' 3), RangeField' (mkRangeField' 4 11) ] )))
-    , testCase "list of hours, and star" $
-        "at 1 minutes past the hour, every hour" @=? describeTime (mkMinuteSpec' (Field (SpecificField' (mkSpecificField' 1))))
-                                                                  (mkHourSpec'   (ListField (SpecificField' (mkSpecificField' 2) :| [Star])))
-    ]
-  , testGroup "displays other times" [
-      testCase "every minute, every hour" $
-        "every minute, every hour" @=? describeTime (mkMinuteSpec' (Field Star))
-                                                    (mkHourSpec'   (Field Star))
-    , testCase "range of minutes, range of hours" $
-        "minutes 10 through 15 past the hour, between 01:00 and 03:00" @=?
-        describeTime (mkMinuteSpec' (Field (RangeField' (mkRangeField' 10 15))))
-                     (mkHourSpec'   (Field (RangeField' (mkRangeField' 1 3))))
-    , testCase "range of minutes, every hour" $
-        "minutes 10 through 15 past the hour, every hour" @=?
-        describeTime (mkMinuteSpec' (Field (RangeField' (mkRangeField' 10 15))))
-                     (mkHourSpec'   (Field Star))
-    , testCase "range of minutes, interval of hours" $
-        "minutes 10 through 15 past the hour, every 3 hours, starting at 03:00" @=?
-        describeTime (mkMinuteSpec' (Field (RangeField' (mkRangeField' 10 15))))
-                     (mkHourSpec'   (StepField' (mkStepField' (SpecificField' (mkSpecificField' 3)) 3)))
-    , testCase "list of minutes, at an hour" $
-        "every minute, at 03:00" @=?
-        describeTime (mkMinuteSpec' (ListField (SpecificField' (mkSpecificField' 2) :| [Star])))
-                     (mkHourSpec'   (Field (SpecificField' (mkSpecificField' 3))))
-    , testCase "step minutes, step hours" $
-        "every 3 minutes, minutes 10 through 15 past the hour, every 5 hours, starting at 10:00" @=?
-        describeTime (mkMinuteSpec' (StepField' (mkStepField' (RangeField' (mkRangeField' 10 15)) 3)))
-                     (mkHourSpec'   (StepField' (mkStepField' (SpecificField' (mkSpecificField' 10)) 5)))
-    ]
-  ]
+    describeNV = describe NotVerbose . mkCronSchedule
+    describeV  = describe Verbose . mkCronSchedule

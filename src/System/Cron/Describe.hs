@@ -1,170 +1,122 @@
-{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE ViewPatterns    #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module System.Cron.Describe
 (
-  describeTime
+  Verbosity(..)
 , describe
 ) where
 
 import Control.Monad
 import System.Cron.Types
-import Data.List.NonEmpty                       (NonEmpty (..))
-import Data.List                                (intercalate)
-import Data.Maybe                               (isJust, fromJust)
+import Data.List.NonEmpty                 (NonEmpty (..))
+import Data.Maybe                         (isJust, fromJust)
+import System.Cron.Internal.DescribeTypes
 import System.Cron.Internal.DescribeUtils
 
-data Descriptor = Descriptor {
-    pluralDescription   :: String
-  , singularDescription :: String
-  , rangePrefix         :: String
-  , rangeSuffix         :: String
-  , rangeJoiner         :: String
-  , displayItem         :: Int -> String
-  , specificPrefix      :: String
-  , specificSuffix      :: String
-  , stepSpecificSuffix  :: Int -> Maybe String
-  , listPrefix          :: String
-  , listSuffix          :: Maybe String
-  }
-
-minuteDescriptor :: Descriptor
-minuteDescriptor = Descriptor {
-    pluralDescription = "minutes"
-  , singularDescription = "minute"
-  , rangePrefix = "minutes"
-  , rangeSuffix = "past the hour"
-  , rangeJoiner = "through"
-  , displayItem = show
-  , specificPrefix = "at"
-  , specificSuffix = "minutes past the hour"
-  , stepSpecificSuffix = sss
-  , listPrefix = "at"
-  , listSuffix = Nothing
-  }
-  where sss n = if n == 0 then Nothing else Just $ "starting at " ++ show n ++ " minutes past the hour"
-
-hourDescriptor :: Descriptor
-hourDescriptor = Descriptor {
-    pluralDescription = "hours"
-  , singularDescription = "hour"
-  , rangePrefix = "between"
-  , rangeSuffix = ""
-  , rangeJoiner = "and"
-  , displayItem = toHour
-  , specificPrefix = "at"
-  , specificSuffix = ""
-  , stepSpecificSuffix = sss
-  , listPrefix = "at"
-  , listSuffix = Nothing
-  }
-  where toHour n = leftPad n ++ ":00"
-        sss n = if n == 0 then Nothing else Just $ "starting at " ++ toHour n
-
-domDescriptor :: Descriptor
-domDescriptor = Descriptor {
-    pluralDescription = "days"
-  , singularDescription = "day"
-  , rangePrefix = "between days"
-  , rangeSuffix = "of the month"
-  , rangeJoiner = "and"
-  , displayItem = show
-  , specificPrefix = "on day"
-  , specificSuffix = "of the month"
-  , stepSpecificSuffix = sss
-  , listPrefix = "on days"
-  , listSuffix = Just "of the month"
-  }
-  where sss n = Just $ "starting on day " ++ show n ++ " of the month"
-
-monthDescriptor :: Descriptor
-monthDescriptor = Descriptor {
-    pluralDescription = "months"
-  , singularDescription = "month"
-  , rangePrefix = ""
-  , rangeSuffix = ""
-  , rangeJoiner = "through"
-  , displayItem = toMonth
-  , specificPrefix = "only in"
-  , specificSuffix = ""
-  , stepSpecificSuffix = sss
-  , listPrefix = "only in"
-  , listSuffix = Nothing
-  }
-  where toMonth = show . safeIntToMonth
-        sss n = if n == 1 then Nothing else Just $ toMonth n ++ " through " ++ toMonth 12
-
-dowDescriptor :: Descriptor
-dowDescriptor = Descriptor {
-    pluralDescription = "days of the week"
-  , singularDescription = "day of the week"
-  , rangePrefix = ""
-  , rangeSuffix = ""
-  , rangeJoiner = "through"
-  , displayItem = toWeekday
-  , specificPrefix = "only on"
-  , specificSuffix = ""
-  , stepSpecificSuffix = sss
-  , listPrefix = "only on"
-  , listSuffix = Nothing
-  }
-  where toWeekday = show . safeIntToWeekDay
-        -- FIXME
-        sss n = if n == 0 then Nothing else Just $ toWeekday n ++ " through " ++ toWeekday 6
-
 describeRange :: RangeField -> Descriptor -> String
-describeRange rf d = allWords [rangePrefix d, displayItem d (rfBegin rf), rangeJoiner d, displayItem d (rfEnd rf), rangeSuffix d]
+describeRange rf d = allWords [rangePrefix d,
+                               displayItem d (rfBegin rf),
+                               rangeJoiner d,
+                               displayItem d (rfEnd rf),
+                               rangeSuffix d]
 
-describeBaseField :: Descriptor -> BaseField -> String
-describeBaseField d (RangeField' rf)   = describeRange rf d
-describeBaseField d (SpecificField' s) = allWords [specificPrefix d, displayItem d (specificField s), specificSuffix d]
-describeBaseField d Star               = "every " ++ singularDescription d
 
-describeListFields :: (BaseField -> String) -> NonEmpty BaseField -> Either String String
+describeBaseField :: Descriptor -> BaseField -> DescribedValue
+describeBaseField d (RangeField' rf)   = Concrete $ describeRange rf d
+describeBaseField d Star               = Every $ "every " ++ singularDesc d
+describeBaseField d (SpecificField' s) =
+  Concrete $ allWords [specificPrefix d,
+                       displayItem d (specificField s),
+                       specificSuffix d]
+
+
+type StarOrDesc = Either String String
+
+describeListFields :: (BaseField -> String) -> NonEmpty BaseField -> StarOrDesc
 describeListFields f (l :| ls) =
-  fmap (intercalate ", ") . foldM describeF [] $ reverse (l:ls)
+  fmap joinWords . foldM describeF [] $ reverse (l:ls)
   where describeF _ Star = Left $ f Star
         describeF e bf   = Right $ f bf : e
 
-description :: CronField -> Descriptor -> String
-description (Field f) d = describeBaseField d f
 
-description (StepField' sf) d =
+
+describeCronField :: Descriptor -> CronField -> DescribedValue
+describeCronField d (Field f) = describeBaseField d f
+
+
+describeCronField d (StepField' sf) = Concrete $
   stepPrefix ++ maybe "" (", " ++) (stepSuffix $ sfField sf)
   where
-    stepPrefix = unwords ["every", show (sfStepping sf), pluralDescription d]
+    stepPrefix = unwords ["every", show (sfStepping sf), pluralDesc d]
     stepSuffix Star              = Nothing
     stepSuffix (RangeField' rf)  = Just $ describeRange rf d
     stepSuffix (SpecificField' s) = stepSpecificSuffix d $ specificField s
 
-description (ListField ls) d =
+
+describeCronField d (ListField ls) =
   case describeListFields describeBF ls of
-    Left  s -> s
-    Right s -> unwords [listPrefix d, maybe s ((s ++ ", ") ++) (listSuffix d)]
+    Left  s -> Every s
+    Right s -> Concrete $ unwords [listPrefix d,
+                                   maybe s ((s ++ " ") ++) (listSuffix d)]
   where
-    describeBF Star               = "every " ++ singularDescription d
-    describeBF (RangeField' rf)   = unwords [displayItem d (rfBegin rf), "through", displayItem d (rfEnd rf)]
+    describeBF Star               = "every " ++ singularDesc d
     describeBF (SpecificField' s) = displayItem d $ specificField s
+    describeBF (RangeField' rf)   = unwords [displayItem d (rfBegin rf),
+                                             "through",
+                                             displayItem d (rfEnd rf)]
 
-describeTime :: MinuteSpec -> HourSpec -> String
-describeTime (viewSF . minuteSpec -> Just m) (viewSF . hourSpec -> Just h) = "at " ++ formatTime m h
-describeTime (viewRD . minuteSpec -> Just m) (viewSF . hourSpec -> Just h) = "every minute between " ++ time (rfBegin m) h ++ " and " ++ time (rfEnd m) h
-describeTime (viewSF . minuteSpec -> Just m) (viewList . hourSpec -> Just h)  = describeMultHours m h
+
+describeTime :: MinuteSpec -> HourSpec -> Time
+describeTime (viewSF . minuteSpec -> Just m) (viewSF . hourSpec -> Just h) =
+  ConcreteTime $ "at " ++ formatTime m h
+describeTime (viewRD . minuteSpec -> Just m) (viewSF . hourSpec -> Just h) =
+  ConcreteTime $ unwords ["every minute between ",
+                          time (rfBegin m) h,
+                          "and",
+                          time (rfEnd m) h]
+describeTime (viewSF . minuteSpec -> Just m) (viewList . hourSpec -> Just h) =
+  describeMultHours m h
 describeTime (minuteSpec -> m) (hourSpec -> h) =
-  description m minuteDescriptor ++ ", " ++ description h hourDescriptor
+  Other (return $ describeCronField minuteDescriptor m)
+        (return $ describeCronField hourDescriptor h)
 
-describeMultHours :: SpecificField -> NonEmpty BaseField -> String
+
+describeMultHours :: SpecificField -> NonEmpty BaseField -> Time
 describeMultHours minuteSF ls@(bf :| bfs)
-  | all isJust formattedTimes = "at " ++ intercalate ", " (map fromJust formattedTimes)
-  | otherwise = describedMinute ++ ", " ++ description (ListField ls) hourDescriptor
+  | all isJust formattedTimes = ConcreteTime $ "at " ++ joinWords (map fromJust formattedTimes)
+  | otherwise = Other (return describedMinute)
+                      (return $ describeCronField hourDescriptor (ListField ls))
   where formattedTimes = map formatBaseField (bf : bfs)
         formatBaseField (SpecificField' s) = Just $ formatTime minuteSF s
-        formatBaseField f@(RangeField' _)  = Just $ describedMinute ++ " " ++ description (Field f) hourDescriptor
+        formatBaseField f@(RangeField' _)  = Just $ unwords [show describedMinute, show $ describeCronField hourDescriptor (Field f)]
         formatBaseField _                  = Nothing
-        describedMinute = description (Field (SpecificField' minuteSF)) minuteDescriptor
+        describedMinute = describeCronField minuteDescriptor (Field (SpecificField' minuteSF))
 
-describe :: CronSchedule -> String
-describe cs =
-  describeTime (minute cs) (hour cs)                           ++ ", " ++
-  description (dayOfMonthSpec $ dayOfMonth cs) domDescriptor   ++ ", " ++
-  description (dayOfWeekSpec $ dayOfWeek cs)   dowDescriptor   ++ ", " ++
-  description (monthSpec $ month cs)           monthDescriptor
+
+description :: CronSchedule -> Description
+description cs = Desc (describeTime (minute cs) (hour cs))
+                      (return ddom)
+                      (return dm)
+                      (return ddow)
+  where ddom = describeCronField domDescriptor $ dayOfMonthSpec (dayOfMonth cs)
+        dm   = describeCronField monthDescriptor $ monthSpec (month cs)
+        ddow = describeCronField dowDescriptor $ dayOfWeekSpec (dayOfWeek cs)
+
+
+matchVerbosity :: Verbosity -> Description -> Description
+matchVerbosity v d@Desc{..} = d{  _dom   = stripEvery v =<< _dom
+                                , _dow   = stripEvery v =<< _dow
+                                , _time  = stripTime _time
+                                , _month = stripEvery NotVerbose =<< _month}
+  where stripTime t@(ConcreteTime _)   = t
+        stripTime (Other mbMin mbHour) = Other mbMin (stripEvery v =<< mbHour)
+
+
+stripEvery :: Verbosity -> DescribedValue -> Maybe DescribedValue
+stripEvery NotVerbose (Every _) = Nothing
+stripEvery _          c         = Just c
+
+
+describe :: Verbosity -> CronSchedule -> String
+describe v = cap . show . matchVerbosity v . description
