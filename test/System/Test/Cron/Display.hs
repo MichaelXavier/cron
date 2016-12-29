@@ -23,29 +23,29 @@ describeDisplayCronSchedule = testGroup "displayCronSchedule"
   [
       testGroup "displays all stars" [
         testCase "verbose" $
-          "Every minute, every hour, every day, every month, every day of the week" @=? description (mkCronSchedule "* * * * *")
+          "Every minute, every hour, every day, every month, every day of the week" @=? describe (mkCronSchedule "* * * * *")
         , testCase "non-verbose" $
-          "Every minute" @=? description (mkCronSchedule "* * * * *")
+          "Every minute" @=? describe (mkCronSchedule "* * * * *")
     ]
     , testGroup "displays specific values" [
         testCase "verbose" $
-          "" @=? description (mkCronSchedule "1 2 3 * *")
+          "" @=? describe (mkCronSchedule "1 2 3 * *")
     ]
     , testGroup "displays list values" [
         testCase "verbose" $
-          "" @=? description (mkCronSchedule "* * 3,5 * *")
+          "" @=? describe (mkCronSchedule "* * 3,5 * *")
     ]
     , testGroup "displays range values" [
         testCase "verbose" $
-          "" @=? description (mkCronSchedule "* * 3-4 * *")
+          "" @=? describe (mkCronSchedule "* * 3-4 * *")
     ]
     , testGroup "displays step values" [
         testCase "verbose" $
-          "" @=? description (mkCronSchedule "*/2 * 2-10/4 * *")
+          "" @=? describe (mkCronSchedule "*/2 * 2-10/4 * *")
     ]
     , testGroup "displays other values" [
         testCase "verbose" $
-          "" @=? description (mkCronSchedule "1-59/2 * * 2 3-5")
+          "" @=? describe (mkCronSchedule "1-59/2 * * 2 3-5")
     ]
   ]
   where

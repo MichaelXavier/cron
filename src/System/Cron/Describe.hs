@@ -8,7 +8,7 @@ module System.Cron.Describe
 -- , displaySchedule
   describeTime
 -- , describe
-, description
+, describe
 -- , description
 -- , minuteDescriptor
 ) where
@@ -132,10 +132,10 @@ describeListFields f (l :| ls) =
   where describeF _ Star = Left $ f Star
         describeF e bf   = Right $ f bf : e
 
-describe :: CronField -> Descriptor -> String
-describe (Field f) d = describeBaseField d f
+description :: CronField -> Descriptor -> String
+description (Field f) d = describeBaseField d f
 
-describe (StepField' sf) d =
+description (StepField' sf) d =
   stepPrefix ++ maybe "" (", " ++) (stepSuffix $ sfField sf)
   where
     stepPrefix = unwords ["every", show (sfStepping sf), pluralDescription d]
@@ -143,7 +143,7 @@ describe (StepField' sf) d =
     stepSuffix (RangeField' rf)  = Just $ describeRange rf d
     stepSuffix (SpecificField' s) = stepSpecificSuffix d $ specificField s
 
-describe (ListField ls) d =
+description (ListField ls) d =
   case describeListFields describeBF ls of
     Left  s -> s
     Right s -> unwords [listPrefix d, maybe s ((s ++ ", ") ++) (listSuffix d)]
@@ -157,21 +157,21 @@ describeTime (viewSF . minuteSpec -> Just m) (viewSF . hourSpec -> Just h) = "at
 describeTime (viewRD . minuteSpec -> Just m) (viewSF . hourSpec -> Just h) = "every minute between " ++ time (rfBegin m) h ++ " and " ++ time (rfEnd m) h
 describeTime (viewSF . minuteSpec -> Just m) (viewList . hourSpec -> Just h)  = describeMultHours m h
 describeTime (minuteSpec -> m) (hourSpec -> h) =
-  describe m minuteDescriptor ++ ", " ++ describe h hourDescriptor
+  description m minuteDescriptor ++ ", " ++ description h hourDescriptor
 
 describeMultHours :: SpecificField -> NonEmpty BaseField -> String
 describeMultHours minuteSF ls@(bf :| bfs)
   | all isJust formattedTimes = "at " ++ intercalate ", " (map fromJust formattedTimes)
-  | otherwise = describedMinute ++ ", " ++ describe (ListField ls) hourDescriptor
+  | otherwise = describedMinute ++ ", " ++ description (ListField ls) hourDescriptor
   where formattedTimes = map formatBaseField (bf : bfs)
         formatBaseField (SpecificField' s) = Just $ formatTime minuteSF s
-        formatBaseField f@(RangeField' _)  = Just $ describedMinute ++ " " ++ describe (Field f) hourDescriptor
+        formatBaseField f@(RangeField' _)  = Just $ describedMinute ++ " " ++ description (Field f) hourDescriptor
         formatBaseField _                  = Nothing
-        describedMinute = describe (Field (SpecificField' minuteSF)) minuteDescriptor
+        describedMinute = description (Field (SpecificField' minuteSF)) minuteDescriptor
 
-description :: CronSchedule -> String
-description cs =
-  describeTime (minute cs) (hour cs)                        ++ ", " ++
-  describe (dayOfMonthSpec $ dayOfMonth cs) domDescriptor   ++ ", " ++
-  describe (dayOfWeekSpec $ dayOfWeek cs)   dowDescriptor   ++ ", " ++
-  describe (monthSpec $ month cs)           monthDescriptor
+describe :: CronSchedule -> String
+describe cs =
+  describeTime (minute cs) (hour cs)                           ++ ", " ++
+  description (dayOfMonthSpec $ dayOfMonth cs) domDescriptor   ++ ", " ++
+  description (dayOfWeekSpec $ dayOfWeek cs)   dowDescriptor   ++ ", " ++
+  description (monthSpec $ month cs)           monthDescriptor
