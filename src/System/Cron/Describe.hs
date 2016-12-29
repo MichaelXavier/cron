@@ -15,179 +15,142 @@ module System.Cron.Describe
 
 import Control.Monad
 import System.Cron.Types
--- import Data.Char                                (toUpper)
 import Data.List.NonEmpty                       (NonEmpty (..))
--- import qualified Data.List.NonEmpty as N hiding (NonEmpty (..))
 import Data.List                                (intercalate)
 import Data.Maybe                               (isJust, fromJust)
--- import Data.Text                                (Text)
--- import qualified Data.Text as T hiding          (Text)
-
-leftPad :: Int -> String
-leftPad n = if n < 10 then "0" ++ show n else show n
-
-toHour :: Int -> String
-toHour n = leftPad n ++ ":00"
-
-viewSF :: CronField -> Maybe SpecificField
-viewSF (Field (SpecificField' s)) = Just s
-viewSF _                          = Nothing
-
-viewRD :: CronField -> Maybe RangeField
-viewRD (Field (RangeField' r)) = Just r
-viewRD _                       = Nothing
-
-viewList :: CronField -> Maybe (NonEmpty BaseField)
-viewList (ListField l) = Just l
-viewList _             = Nothing
+import System.Cron.Internal.DescribeUtils
 
 data Descriptor = Descriptor {
-    listPrefix       :: String
-  , listSuffix       :: Maybe String
-  , listRangeDisplay :: Int -> Int -> String
-  , stepPrefix       :: Int -> String
-  , stepSuffixSpec   :: BaseField -> Maybe String
-  , displaySpec      :: BaseField -> String
-  , describeItem     :: Int -> String
+    pluralDescription   :: String
+  , singularDescription :: String
+  , rangePrefix         :: String
+  , rangeSuffix         :: String
+  , rangeJoiner         :: String
+  , displayItem         :: Int -> String
+  , specificPrefix      :: String
+  , specificSuffix      :: String
+  , stepSpecificSuffix  :: Int -> Maybe String
+  , listPrefix          :: String
+  , listSuffix          :: Maybe String
   }
 
 minuteDescriptor :: Descriptor
-minuteDescriptor = Descriptor{
-    listPrefix       = "at"
-  , listSuffix       = Just "minutes past the hour"
-  , listRangeDisplay = (\b e -> show b ++ " through " ++ show e)
-  , stepPrefix       = (\n -> "every " ++ show n ++ " minutes")
-  , stepSuffixSpec   = stepSuffix
-  , displaySpec      = display
-  , describeItem     = show
+minuteDescriptor = Descriptor {
+    pluralDescription = "minutes"
+  , singularDescription = "minute"
+  , rangePrefix = "minutes"
+  , rangeSuffix = "past the hour"
+  , rangeJoiner = "through"
+  , displayItem = show
+  , specificPrefix = "at"
+  , specificSuffix = "minutes past the hour"
+  , stepSpecificSuffix = sss
+  , listPrefix = "at"
+  , listSuffix = Nothing
   }
-  where dispRange b e = "minutes " ++ show b ++ " through " ++ show e ++ " past the hour"
-        stepSuffix (RangeField' rf)   = Just $ dispRange (rfBegin rf) (rfEnd rf)
-        stepSuffix (SpecificField' s)
-          | n == 0    = Nothing
-          | otherwise = Just $ "starting at " ++ show n ++ " minutes past the hour"
-          where n = specificField s
-        stepSuffix Star               = Nothing
-        display (RangeField' rf)   = dispRange (rfBegin rf) (rfEnd rf)
-        display (SpecificField' s) = "at " ++ show (specificField s) ++ " minutes past the hour"
-        display Star               = "every minute"
+  where sss n = if n == 0 then Nothing else Just $ "starting at " ++ show n ++ " minutes past the hour"
 
 hourDescriptor :: Descriptor
-hourDescriptor = Descriptor{
-    listPrefix       = "at"
-  , listSuffix       = Nothing
-  , listRangeDisplay = (\b e -> dispItem b ++ " through " ++ dispItem e)
-  , stepPrefix       = (\n -> "every " ++ show n ++ " hours")
-  , stepSuffixSpec   = stepSuffix
-  , displaySpec      = display
-  , describeItem     = dispItem
+hourDescriptor = Descriptor {
+    pluralDescription = "hours"
+  , singularDescription = "hour"
+  , rangePrefix = "between"
+  , rangeSuffix = ""
+  , rangeJoiner = "and"
+  , displayItem = toHour
+  , specificPrefix = "at"
+  , specificSuffix = ""
+  , stepSpecificSuffix = sss
+  , listPrefix = "at"
+  , listSuffix = Nothing
   }
-  where dispRange b e = "between " ++ toHour b ++ " and " ++ toHour e
-        dispItem n = leftPad n ++ ":00"
-        stepSuffix (RangeField' rf)   = Just $ dispRange (rfBegin rf) (rfEnd rf)
-        stepSuffix (SpecificField' s)
-          | n == 0    = Nothing
-          | otherwise = Just $ "starting at " ++ dispItem n
-          where n = specificField s
-        stepSuffix Star            = Nothing
-        display (RangeField' rf)   = dispRange (rfBegin rf) (rfEnd rf)
-        display (SpecificField' s) = "at " ++ dispItem (specificField s)
-        display Star               = "every hour"
+  where toHour n = leftPad n ++ ":00"
+        sss n = if n == 0 then Nothing else Just $ "starting at " ++ toHour n
 
 domDescriptor :: Descriptor
-domDescriptor = Descriptor{
-    listPrefix       = "on days"
-  , listSuffix       = Just "of the month"
-  , listRangeDisplay = (\b e -> show b ++ " through " ++ show e)
-  , stepPrefix       = (\n -> "every " ++ show n ++ " days")
-  , stepSuffixSpec   = stepSuffix
-  , displaySpec      = display
-  , describeItem     = show
+domDescriptor = Descriptor {
+    pluralDescription = "days"
+  , singularDescription = "day"
+  , rangePrefix = "between days"
+  , rangeSuffix = "of the month"
+  , rangeJoiner = "and"
+  , displayItem = show
+  , specificPrefix = "on day"
+  , specificSuffix = "of the month"
+  , stepSpecificSuffix = sss
+  , listPrefix = "on days"
+  , listSuffix = Just "of the month"
   }
-  where dispRange b e = "between days " ++ show b ++ " and " ++ show e ++ " of the month"
-        stepSuffix (RangeField' rf)   = Just $ dispRange (rfBegin rf) (rfEnd rf)
-        stepSuffix (SpecificField' s) = Just $ "starting on day " ++ show n ++ " of the month"
-          where n = specificField s
-        stepSuffix Star            = Nothing
-        display (RangeField' rf)   = dispRange (rfBegin rf) (rfEnd rf)
-        display (SpecificField' s) = "on day " ++ show (specificField s) ++ " of the month"
-        display Star               = "every day"
-
-data Month = January | February | March     | April   | May      | June     |
-             July    | August   | September | October | November | December
-             deriving (Enum, Bounded, Show)
-
-safeIntToMonth :: Int -> Month
-safeIntToMonth = toEnum . subtract 1 . min 12 . max 1
+  where sss n = Just $ "starting on day " ++ show n ++ " of the month"
 
 monthDescriptor :: Descriptor
-monthDescriptor = Descriptor{
-    listPrefix       = "only in"
-  , listSuffix       = Nothing
-  , listRangeDisplay = (\b e -> dispItem b ++ " through " ++ dispItem e)
-  , stepPrefix       = (\n -> "every " ++ show n ++ " months")
-  , stepSuffixSpec   = stepSuffix
-  , displaySpec      = display
-  , describeItem     = dispItem
+monthDescriptor = Descriptor {
+    pluralDescription = "months"
+  , singularDescription = "month"
+  , rangePrefix = ""
+  , rangeSuffix = ""
+  , rangeJoiner = "through"
+  , displayItem = toMonth
+  , specificPrefix = "only in"
+  , specificSuffix = ""
+  , stepSpecificSuffix = sss
+  , listPrefix = "only in"
+  , listSuffix = Nothing
   }
-  where dispRange b e = dispItem b ++ " through " ++ dispItem e
-        stepSuffix (RangeField' rf)   = Just $ dispRange (rfBegin rf) (rfEnd rf)
-        stepSuffix (SpecificField' s)
-          | n == 1    = Nothing
-          | otherwise = Just $ dispItem n ++ " through " ++ show December
-          where n = specificField s
-        stepSuffix Star            = Nothing
-        display (RangeField' rf)   = dispRange (rfBegin rf) (rfEnd rf)
-        display (SpecificField' s) = "only in " ++ dispItem (specificField s)
-        display Star               = "every month"
-        dispItem = show . safeIntToMonth
-
-data Weekday = Sunday | Monday | Tuesday | Wednesday | Thursday | Friday | Saturday
-             deriving (Enum, Bounded, Show)
-
-safeIntToWeekDay :: Int -> Weekday
-safeIntToWeekDay = toEnum . subtract 1 . min 12 . max 1
+  where toMonth = show . safeIntToMonth
+        sss n = if n == 1 then Nothing else Just $ toMonth n ++ " through " ++ toMonth 12
 
 dowDescriptor :: Descriptor
-dowDescriptor = Descriptor{
-    listPrefix       = "only on"
-  , listSuffix       = Nothing
-  , listRangeDisplay = (\b e -> dispItem b ++ " through " ++ dispItem e)
-  , stepPrefix       = (\n -> "every " ++ show n ++ " days of the week")
-  , stepSuffixSpec   = stepSuffix
-  , displaySpec      = display
-  , describeItem     = dispItem
+dowDescriptor = Descriptor {
+    pluralDescription = "days of the week"
+  , singularDescription = "day of the week"
+  , rangePrefix = ""
+  , rangeSuffix = ""
+  , rangeJoiner = "through"
+  , displayItem = toWeekday
+  , specificPrefix = "only on"
+  , specificSuffix = ""
+  , stepSpecificSuffix = sss
+  , listPrefix = "only on"
+  , listSuffix = Nothing
   }
-  where dispRange b e = dispItem b ++ " through " ++ dispItem e
-        stepSuffix (RangeField' rf)   = Just $ dispRange (rfBegin rf) (rfEnd rf)
-        stepSuffix (SpecificField' s)
-          | n == 0    = Nothing -- fix this
-          | otherwise = Just $ dispItem n ++ " through " ++ show Saturday
-          where n = specificField s
-        stepSuffix Star            = Nothing
-        display (RangeField' rf)   = dispRange (rfBegin rf) (rfEnd rf)
-        display (SpecificField' s) = "only on " ++ dispItem (specificField s)
-        display Star               = "every day of the week"
-        dispItem = show . safeIntToWeekDay
+  where toWeekday = show . safeIntToWeekDay
+        -- FIXME
+        sss n = if n == 0 then Nothing else Just $ toWeekday n ++ " through " ++ toWeekday 6
 
-describe :: CronField -> Descriptor -> String
-describe (Field f)       d = displaySpec d f
-describe (StepField' sf) d =
-  stepPrefix d (sfStepping sf) ++ maybe "" (", " ++) (stepSuffixSpec d $ sfField sf)
-describe (ListField ls)  d =
-  case describeListFields describeBF ls of
-    Left  s -> s
-    Right s -> listPrefix d ++ " " ++ maybe s ((s ++ ", ") ++) (listSuffix d)
-  where
-    describeBF Star               = displaySpec d Star
-    describeBF (RangeField' rf)   = listRangeDisplay d (rfBegin rf) (rfEnd rf)
-    describeBF (SpecificField' s) = describeItem d $ specificField s
+describeRange :: RangeField -> Descriptor -> String
+describeRange rf d = allWords [rangePrefix d, displayItem d (rfBegin rf), rangeJoiner d, displayItem d (rfEnd rf), rangeSuffix d]
+
+describeBaseField :: Descriptor -> BaseField -> String
+describeBaseField d (RangeField' rf)   = describeRange rf d
+describeBaseField d (SpecificField' s) = allWords [specificPrefix d, displayItem d (specificField s), specificSuffix d]
+describeBaseField d Star               = "every " ++ singularDescription d
 
 describeListFields :: (BaseField -> String) -> NonEmpty BaseField -> Either String String
 describeListFields f (l :| ls) =
   fmap (intercalate ", ") . foldM describeF [] $ reverse (l:ls)
   where describeF _ Star = Left $ f Star
         describeF e bf   = Right $ f bf : e
+
+describe :: CronField -> Descriptor -> String
+describe (Field f) d = describeBaseField d f
+
+describe (StepField' sf) d =
+  stepPrefix ++ maybe "" (", " ++) (stepSuffix $ sfField sf)
+  where
+    stepPrefix = unwords ["every", show (sfStepping sf), pluralDescription d]
+    stepSuffix Star              = Nothing
+    stepSuffix (RangeField' rf)  = Just $ describeRange rf d
+    stepSuffix (SpecificField' s) = stepSpecificSuffix d $ specificField s
+
+describe (ListField ls) d =
+  case describeListFields describeBF ls of
+    Left  s -> s
+    Right s -> unwords [listPrefix d, maybe s ((s ++ ", ") ++) (listSuffix d)]
+  where
+    describeBF Star               = "every " ++ singularDescription d
+    describeBF (RangeField' rf)   = unwords [displayItem d (rfBegin rf), "through", displayItem d (rfEnd rf)]
+    describeBF (SpecificField' s) = displayItem d $ specificField s
 
 describeTime :: MinuteSpec -> HourSpec -> String
 describeTime (viewSF . minuteSpec -> Just m) (viewSF . hourSpec -> Just h) = "at " ++ formatTime m h
@@ -205,12 +168,6 @@ describeMultHours minuteSF ls@(bf :| bfs)
         formatBaseField f@(RangeField' _)  = Just $ describedMinute ++ " " ++ describe (Field f) hourDescriptor
         formatBaseField _                  = Nothing
         describedMinute = describe (Field (SpecificField' minuteSF)) minuteDescriptor
-
-time :: Int -> SpecificField -> String
-time minute' hourF = leftPad (specificField hourF) ++ ":" ++ leftPad minute'
-
-formatTime :: SpecificField -> SpecificField -> String
-formatTime minuteF hourF = time (specificField minuteF) hourF
 
 description :: CronSchedule -> String
 description cs =
