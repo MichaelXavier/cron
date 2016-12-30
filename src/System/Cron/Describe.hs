@@ -37,6 +37,7 @@ module System.Cron.Describe
 import Control.Monad
 import Data.List.NonEmpty                       (NonEmpty (..), toList)
 import Data.Maybe                               (fromJust)
+import Data.Traversable                         (traverse)
 -------------------------------------------------------------------------------
 import System.Cron.Internal.Describe.Descriptors
 import System.Cron.Internal.Describe.Options
