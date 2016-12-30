@@ -19,12 +19,14 @@ import System.Cron.Internal.Describe.Types
 -------------------------------------------------------------------------------
 
 
--- | Type that holds onto information for constructing options for \@describe.
+-- | Type that holds onto information for constructing options for
+-- 'System.Cron.Describe.describe'.
 data OptionBuilder = Builder (Options -> Options)
 
 
--- | Return a builder that creates the default options for \@describe.
--- The default options are: \@notVerbose and \@twelveHourFormat.
+-- | Return a builder that creates the default options for
+-- 'System.Cron.Describe.describe'. The default options are:
+-- 'System.Cron.Describe.notVerbose' and 'System.Cron.Describe.twelveHourFormat'.
 defaultOpts :: OptionBuilder
 defaultOpts = Builder (const def)
 
@@ -46,14 +48,14 @@ twelveHourFormat = Builder (\o -> o {timeFormat = Hour12} )
 
 -- | Return a builder that sets the options to be verbose. A verbose description
 -- doesn't eliminate unnecessary information. The only caveat being that month
--- information is only ever displayed if it isn't '*'.
+-- information is only ever displayed if it isn't "*".
 verbose :: OptionBuilder
 verbose = Builder (\o -> o {verbosity = Verbose})
 
 
 -- | Return a builder that sets the options to not be verbose. All information
--- about the described cron schedule is returned. The only caveat being that month
--- information is only ever displayed if it isn't '*'.
+-- about the described cron schedule is returned. The only caveat being that
+-- month information is only ever displayed if it isn't "*".
 notVerbose :: OptionBuilder
 notVerbose = Builder (\o -> o {verbosity = NotVerbose})
 

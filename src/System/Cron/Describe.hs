@@ -47,9 +47,9 @@ import System.Cron.Types
 -------------------------------------------------------------------------------
 
 
--- | Given an \@OptionBuilder and a \@CronSchedule parsed with
--- \@parseCronSchedule, return a human-readable string describing
--- when that schedule will match.
+-- | Given an 'OptionBuilder' and a 'CronSchedule' parsed with
+-- 'System.Cron.Parser.parseCronSchedule', return a human-readable string
+-- describing when that schedule will match.
 describe :: OptionBuilder -> CronSchedule -> String
 describe ob = cap                      .
               show                     .
