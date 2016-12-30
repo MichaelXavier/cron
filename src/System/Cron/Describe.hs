@@ -3,15 +3,23 @@
 
 module System.Cron.Describe
 (
-  Verbosity(..)
+  defaultOpts
+, twentyFourHourFormat
+, twelveHourFormat
+, verbose
+, notVerbose
 , describe
 ) where
 
 import Control.Monad
-import System.Cron.Types
 import Data.List.NonEmpty                 (NonEmpty (..), toList)
-import System.Cron.Internal.DescribeTypes
-import System.Cron.Internal.DescribeUtils
+import Data.Maybe                         (fromJust)
+import System.Cron.Internal.Describe.Descriptors
+import System.Cron.Internal.Describe.Options
+import System.Cron.Internal.Describe.Time
+import System.Cron.Internal.Describe.Types
+import System.Cron.Internal.Describe.Utils
+import System.Cron.Types
 
 describeRange :: RangeField -> Descriptor -> String
 describeRange rf d = allWords [rangePrefix d,
@@ -31,6 +39,7 @@ describeBaseField d (SpecificField' s) =
 
 
 type StarOrDesc = Either String String
+
 
 describeListFields :: (BaseField -> String) -> NonEmpty BaseField -> StarOrDesc
 describeListFields f (l :| ls) =
@@ -66,41 +75,45 @@ describeCronField d (ListField ls) =
                                              displayItem d (rfEnd rf)]
 
 
-describeTime :: MinuteSpec -> HourSpec -> Time
-describeTime (viewSF . minuteSpec -> Just m) (viewSF . hourSpec -> Just h) =
-  ConcreteTime $ "at " ++ formatTime m h
-describeTime (viewRD . minuteSpec -> Just m) (viewSF . hourSpec -> Just h) =
+describeTime :: TimeFormat -> MinuteSpec -> HourSpec -> Time
+describeTime tf (viewMinute -> Just m) (viewHour -> Just h) =
+  ConcreteTime $ "at " ++ format tf m h
+describeTime tf (viewMinuteRange -> Just (m1, m2)) (viewHour -> Just h) =
   ConcreteTime $ unwords ["every minute between",
-                          time (rfBegin m) h,
+                          format tf m1 h,
                           "and",
-                          time (rfEnd m) h]
-describeTime (viewSF . minuteSpec -> Just m) (viewList . hourSpec -> Just h) =
-  describeMultHours m h
-describeTime (minuteSpec -> m) (hourSpec -> h) =
+                          format tf m2 h]
+describeTime tf (viewMinute -> Just m) (viewHourList -> Just hs) =
+  describeMultHours tf m hs
+describeTime tf (minuteSpec -> m) (hourSpec -> h) =
   Other (return $ describeCronField minuteDescriptor m)
-        (return $ describeCronField hourDescriptor h)
+        (return $ describeCronField (hourDescriptor tf) h)
 
 
-describeMultHours :: SpecificField -> NonEmpty BaseField -> Time
-describeMultHours minuteSF ls =
-  maybe otherTime (formatAllFields . toList) $ traverse formatBaseField ls
+describeMultHours :: TimeFormat -> Minute -> NonEmpty BaseField -> Time
+describeMultHours t mn@(Minute m) ls =
+  maybe mkOther (formatAllFields . toList) $ traverse formatBaseField ls
   where hourCF   = ListField ls
-        minuteCF = Field (SpecificField' minuteSF)
+        minuteCF = Field (SpecificField' (fromJust $ mkSpecificField m))
+
         formatAllFields = ConcreteTime . ("at " ++) . joinWords
-        otherTime = Other (return describedMinute)
-                          (return $ describeCronField hourDescriptor hourCF)
-        formatBaseField (SpecificField' s) = Just $ formatTime minuteSF s
+
+        formatBaseField (SpecificField' s) =
+          Just $ format t mn (Hour (specificField s))
         formatBaseField Star               = Nothing
         formatBaseField f@(RangeField' _)  =
           Just $ unwords [show describedMinute,
-                          show $ describeCronField hourDescriptor (Field f)]
+                          show $ describeCronField (hourDescriptor t) (Field f)]
+
+        mkOther = Other (return describedMinute)
+                        (return $ describeCronField (hourDescriptor t) hourCF)
         describedMinute = describeCronField minuteDescriptor minuteCF
 
-description :: CronSchedule -> Description
-description cs = Desc (describeTime (minute cs) (hour cs))
-                      (return ddom)
-                      (return dm)
-                      (return ddow)
+description :: TimeFormat -> CronSchedule -> Description
+description t cs = Desc (describeTime t (minute cs) (hour cs))
+                        (return ddom)
+                        (return dm)
+                        (return ddow)
   where ddom = describeCronField domDescriptor $ dayOfMonthSpec (dayOfMonth cs)
         dm   = describeCronField monthDescriptor $ monthSpec (month cs)
         ddow = describeCronField dowDescriptor $ dayOfWeekSpec (dayOfWeek cs)
@@ -120,5 +133,6 @@ stripEvery NotVerbose (Every _) = Nothing
 stripEvery _          c         = Just c
 
 
-describe :: Verbosity -> CronSchedule -> String
-describe v = cap . show . matchVerbosity v . description
+describe :: OptionBuilder -> CronSchedule -> String
+describe ob = cap . show . matchVerbosity verbosity . description timeFormat
+  where Opts{..} = getOpts ob

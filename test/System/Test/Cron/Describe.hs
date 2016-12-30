@@ -3,6 +3,7 @@
 module System.Test.Cron.Describe (tests) where
 
 import           SpecHelper
+import qualified Data.Semigroup as S ((<>))
 -------------------------------------------------------------------------------
 
 
@@ -102,5 +103,5 @@ describeDisplayCronSchedule = testGroup "describeCronSchedule"
   ]
   where
     mkCronSchedule t = let (Right cs) = parseCronSchedule t in cs
-    describeNV = describe NotVerbose . mkCronSchedule
-    describeV  = describe Verbose . mkCronSchedule
+    describeNV = describe (twentyFourHourFormat S.<> notVerbose) . mkCronSchedule
+    describeV  = describe (twentyFourHourFormat S.<> verbose) . mkCronSchedule

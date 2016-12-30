@@ -44,9 +44,14 @@ flag lib-Werror
 
 library
   Exposed-modules:   System.Cron
+                   , System.Cron.Internal.Describe.Descriptors
+                   , System.Cron.Internal.Describe.Options
+                   , System.Cron.Internal.Describe.Time
+                   , System.Cron.Internal.Describe.Types
+                   , System.Cron.Internal.Describe.Utils
                    , System.Cron.Internal.Check
-                   , System.Cron.Internal.DescribeTypes
-                   , System.Cron.Internal.DescribeUtils
+                  --  , System.Cron.Internal.DescribeTypes
+                  --  , System.Cron.Internal.DescribeUtils
                    , System.Cron.Describe
                    , System.Cron.Parser
                    , System.Cron.Schedule
