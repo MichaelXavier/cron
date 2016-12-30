@@ -1,25 +1,67 @@
 {-# LANGUAGE ViewPatterns    #-}
 {-# LANGUAGE RecordWildCards #-}
-
+--------------------------------------------------------------------
+-- |
+-- Module      : System.Cron.Describe
+-- Description : Turn a cron schedule into a human-readable string
+-- Copyright   : (c) Joseph Canero 2016
+-- License     : MIT
+--
+-- Maintainer: Joseph Canero <jmc41493@gmail.com>
+-- Portability: portable
+--
+--
+-- > import System.Cron
+-- >
+-- > main :: IO ()
+-- > main = do
+-- >   either print (print . describe defaultOpts) $
+-- >      parseCronSchedule "*/2 * 3 * 4,5,6"
+-- >   either print (print . describe (twentyFourHourFormat <> verbose)) $
+-- >      parseCronSchedule "*/2 12 3 * 4,5,6"
+--------------------------------------------------------------------
 module System.Cron.Describe
-(
-  defaultOpts
-, twentyFourHourFormat
-, twelveHourFormat
-, verbose
-, notVerbose
-, describe
-) where
+    (
+      -- * Options handling
+      defaultOpts
+    , twentyFourHourFormat
+    , twelveHourFormat
+    , verbose
+    , notVerbose
+    , OptionBuilder
+      -- * Describe a CronSchedule
+    , describe
+    ) where
 
+-------------------------------------------------------------------------------
 import Control.Monad
-import Data.List.NonEmpty                 (NonEmpty (..), toList)
-import Data.Maybe                         (fromJust)
+import Data.List.NonEmpty                       (NonEmpty (..), toList)
+import Data.Maybe                               (fromJust)
+-------------------------------------------------------------------------------
 import System.Cron.Internal.Describe.Descriptors
 import System.Cron.Internal.Describe.Options
 import System.Cron.Internal.Describe.Time
 import System.Cron.Internal.Describe.Types
 import System.Cron.Internal.Describe.Utils
 import System.Cron.Types
+-------------------------------------------------------------------------------
+
+
+-- | Given an \@OptionBuilder and a \@CronSchedule parsed with
+-- \@parseCronSchedule, return a human-readable string describing
+-- when that schedule will match.
+describe :: OptionBuilder -> CronSchedule -> String
+describe ob = cap                      .
+              show                     .
+              matchVerbosity verbosity .
+              description timeFormat
+  where Opts{..} = getOpts ob
+
+
+-------------------------------------------------------------------------------
+-- Internals
+-------------------------------------------------------------------------------
+
 
 describeRange :: RangeField -> Descriptor -> String
 describeRange rf d = allWords [rangePrefix d,
@@ -74,7 +116,12 @@ describeCronField d (ListField ls) =
                                              "through",
                                              displayItem d (rfEnd rf)]
 
-
+-- There are a few special cases to handle when describing the minute and hour
+-- fields that will make the cron description easier to read.
+-- For the most part, these are pretty straight forward. The first three
+-- pattern matches look for specific patterns in the minute and hour fields that
+-- can be formatted differently. The last pattern match just defaults
+-- to describing the fields using existing rules.
 describeTime :: TimeFormat -> MinuteSpec -> HourSpec -> Time
 describeTime tf (viewMinute -> Just m) (viewHour -> Just h) =
   ConcreteTime $ "at " ++ format tf m h
@@ -89,7 +136,11 @@ describeTime tf (minuteSpec -> m) (hourSpec -> h) =
   Other (return $ describeCronField minuteDescriptor m)
         (return $ describeCronField (hourDescriptor tf) h)
 
-
+-- We want to create a description for multiple hours given a concrete minute.
+-- This is rather ugly, as the ListField type allows for any BaseField, so
+-- we can potentially have a '*' within the list. In that case, we don't need
+-- to describe the rest of the BaseFields for hour list, since we will just be
+-- firing each hour.
 describeMultHours :: TimeFormat -> Minute -> NonEmpty BaseField -> Time
 describeMultHours t mn@(Minute m) ls =
   maybe mkOther (formatAllFields . toList) $ traverse formatBaseField ls
@@ -108,6 +159,7 @@ describeMultHours t mn@(Minute m) ls =
         mkOther = Other (return describedMinute)
                         (return $ describeCronField (hourDescriptor t) hourCF)
         describedMinute = describeCronField minuteDescriptor minuteCF
+
 
 description :: TimeFormat -> CronSchedule -> Description
 description t c = Desc (describeTime t (minute c) (hour c))
@@ -131,11 +183,3 @@ matchVerbosity v d@Desc{..} = d{  _dom   = stripEvery v =<< _dom
 stripEvery :: Verbosity -> DescribedValue -> Maybe DescribedValue
 stripEvery NotVerbose (Every _) = Nothing
 stripEvery _          c         = Just c
-
-
-describe :: OptionBuilder -> CronSchedule -> String
-describe ob = cap                      .
-              show                     .
-              matchVerbosity verbosity .
-              description timeFormat
-  where Opts{..} = getOpts ob
