@@ -95,7 +95,4 @@ dowDescriptor = Descriptor {
   , listSuffix = Nothing
   }
   where toWeekday = show . safeIntToWeekDay
-        -- FIXME
-        sss n
-          | n == 0    = Nothing
-          | otherwise = Just $ toWeekday n ++ " through " ++ toWeekday 6
+        sss n = Just $ toWeekday n ++ " through " ++ show Saturday

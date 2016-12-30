@@ -5,6 +5,7 @@ module System.Cron.Internal.Describe.Types where
 import Data.List  (intercalate)
 import Data.Maybe (catMaybes)
 
+
 data Descriptor = Descriptor {
     pluralDesc         :: String
   , singularDesc       :: String
@@ -30,17 +31,20 @@ safeIntToMonth = toEnum . subtract 1 . min 12 . max 1
 
 
 data Weekday = Sunday | Monday | Tuesday | Wednesday |
-               Thursday | Friday | Saturday
+               Thursday | Friday | Saturday | Sunday2
                deriving (Enum, Bounded, Show)
 
 
 safeIntToWeekDay :: Int -> Weekday
-safeIntToWeekDay = toEnum . subtract 1 . min 12 . max 1
+safeIntToWeekDay n
+  | n == 7    = Sunday
+  | otherwise = toEnum . min 6 $ max 0 n
 
-data Verbosity = Verbose | NotVerbose deriving Show
+
+data Verbosity = Verbose | NotVerbose
 
 
-data TimeFormat = Hour24 | Hour12 deriving Show
+data TimeFormat = Hour24 | Hour12
 
 
 data DescribedValue = Concrete String

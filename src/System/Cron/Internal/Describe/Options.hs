@@ -4,9 +4,9 @@ import Data.Semigroup
 import System.Cron.Internal.Describe.Types
 
 data Options = Opts {
-    timeFormat :: TimeFormat
-  , verbosity  :: Verbosity
-  } deriving Show
+    timeFormat    :: TimeFormat
+  , verbosity     :: Verbosity
+  }
 
 data OptionBuilder = Builder (Options -> Options)
 

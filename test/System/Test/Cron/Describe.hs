@@ -56,42 +56,51 @@ describeDisplayCronSchedule = testGroup "describeCronSchedule"
     ]
     , testGroup "describes other values" [
         testCase "verbose" $
-          "Every 2 minutes, minutes 1 through 59 past the hour, every hour, every day, Tuesday through Thursday, only in February" @=? describeV "1-59/2 * * 2 3-5"
+          "Every 2 minutes, minutes 1 through 59 past the hour, every hour, every day, Wednesday through Friday, only in February" @=? describeV "1-59/2 * * 2 3-5"
 
       , testCase "non-verbose" $
-          "Every 2 minutes, minutes 1 through 59 past the hour, Tuesday through Thursday, only in February" @=? describeNV "1-59/2 * * 2 3-5"
+          "Every 2 minutes, minutes 1 through 59 past the hour, Wednesday through Friday, only in February" @=? describeNV "1-59/2 * * 2 3-5"
     ]
-    ,
-    testGroup "describes complicated times" [
-      testCase "describes specific times - twenty four hour" $
-        "At 13:01, every day, every day of the week" @=? describeV "1 13 * * *"
+    , testGroup "handles Sunday weirdness" [
+        testCase "range of values (Sunday at 0)" $
+          "Every minute, every hour, every day, Sunday through Friday" @=? describeV "* * * * 0-5"
 
-    , testCase "describes specific times - twelve hour" $
-      "At 01:01 PM, every day, every day of the week" @=? describe12 "1 13 * * *"
+      , testCase "range of values (Sunday at 7)" $
+          "Every minute, every hour, every day, Friday through Sunday" @=? describeV "* * * * 5-7"
 
-    , testCase "describes a range of minutes - twenty four hour" $
-        "Every minute between 12:01 and 12:10, every day, every day of the week" @=? describeV "1-10 12 * * *"
+      , testCase "range of values" $
+          "Every minute, every hour, every day, Sunday through Sunday" @=? describeV "* * * * 0-7"
+    ]
+    , testGroup "describes complicated times" [
+        testCase "describes specific times - twenty four hour" $
+          "At 13:01, every day, every day of the week" @=? describeV "1 13 * * *"
 
-    , testCase "describes a range of minutes - twelve hour" $
-        "Every minute between 12:01 PM and 12:10 PM, every day, every day of the week" @=? describe12 "1-10 12 * * *"
+      , testCase "describes specific times - twelve hour" $
+        "At 01:01 PM, every day, every day of the week" @=? describe12 "1 13 * * *"
 
-    , testGroup "describes times for lists of hours" [
-        testCase "simple list of hours - twenty four hour" $
-          "At 02:01 and 03:01, every day, every day of the week" @=? describeV "1 2,3 * * *"
+      , testCase "describes a range of minutes - twenty four hour" $
+          "Every minute between 12:01 and 12:10, every day, every day of the week" @=? describeV "1-10 12 * * *"
 
-      , testCase "simple list of hours - twelve hour" $
-        "At 02:01 AM and 03:01 AM, every day, every day of the week" @=? describe12 "1 2,3 * * *"
+      , testCase "describes a range of minutes - twelve hour" $
+          "Every minute between 12:01 PM and 12:10 PM, every day, every day of the week" @=? describe12 "1-10 12 * * *"
 
-      , testCase "list of hours, and range - twenty four hour" $
-          "At 02:01, 03:01 and at 1 minutes past the hour between 04:00 and 13:00, every day, every day of the week" @=?
-          describeV "1 2,3,4-13 * * *"
+      , testGroup "describes times for lists of hours" [
+          testCase "simple list of hours - twenty four hour" $
+            "At 02:01 and 03:01, every day, every day of the week" @=? describeV "1 2,3 * * *"
 
-      , testCase "list of hours, and range - twelve hour" $
-          "At 02:01 AM, 03:01 AM and at 1 minutes past the hour between 04:00 AM and 01:00 PM, every day, every day of the week" @=?
-          describe12 "1 2,3,4-13 * * *"
+        , testCase "simple list of hours - twelve hour" $
+          "At 02:01 AM and 03:01 AM, every day, every day of the week" @=? describe12 "1 2,3 * * *"
 
-      , testCase "list of hours, and star" $
-          "At 1 minutes past the hour, every hour, every day, every day of the week" @=? describeV "1 2,* * * *"
+        , testCase "list of hours, and range - twenty four hour" $
+            "At 02:01, 03:01 and at 1 minutes past the hour between 04:00 and 13:00, every day, every day of the week" @=?
+            describeV "1 2,3,4-13 * * *"
+
+        , testCase "list of hours, and range - twelve hour" $
+            "At 02:01 AM, 03:01 AM and at 1 minutes past the hour between 04:00 AM and 01:00 PM, every day, every day of the week" @=?
+            describe12 "1 2,3,4-13 * * *"
+
+        , testCase "list of hours, and star" $
+            "At 1 minutes past the hour, every hour, every day, every day of the week" @=? describeV "1 2,* * * *"
       ]
     , testGroup "describes other times" [
         testCase "range of minutes, range of hours" $

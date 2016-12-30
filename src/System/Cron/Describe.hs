@@ -110,13 +110,13 @@ describeMultHours t mn@(Minute m) ls =
         describedMinute = describeCronField minuteDescriptor minuteCF
 
 description :: TimeFormat -> CronSchedule -> Description
-description t cs = Desc (describeTime t (minute cs) (hour cs))
-                        (return ddom)
-                        (return dm)
-                        (return ddow)
-  where ddom = describeCronField domDescriptor $ dayOfMonthSpec (dayOfMonth cs)
-        dm   = describeCronField monthDescriptor $ monthSpec (month cs)
-        ddow = describeCronField dowDescriptor $ dayOfWeekSpec (dayOfWeek cs)
+description t c = Desc (describeTime t (minute c) (hour c))
+                       (return ddom)
+                       (return dm)
+                       (return ddow)
+  where ddom = describeCronField domDescriptor $ dayOfMonthSpec (dayOfMonth c)
+        dm   = describeCronField monthDescriptor $ monthSpec (month c)
+        ddow = describeCronField dowDescriptor $ dayOfWeekSpec (dayOfWeek c)
 
 
 matchVerbosity :: Verbosity -> Description -> Description
@@ -134,5 +134,8 @@ stripEvery _          c         = Just c
 
 
 describe :: OptionBuilder -> CronSchedule -> String
-describe ob = cap . show . matchVerbosity verbosity . description timeFormat
+describe ob = cap                      .
+              show                     .
+              matchVerbosity verbosity .
+              description timeFormat
   where Opts{..} = getOpts ob
