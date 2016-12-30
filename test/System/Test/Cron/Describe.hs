@@ -3,7 +3,6 @@
 module System.Test.Cron.Describe (tests) where
 
 import           SpecHelper
-import qualified Data.Semigroup as S ((<>))
 -------------------------------------------------------------------------------
 
 
@@ -30,6 +29,9 @@ describeDisplayCronSchedule = testGroup "describeCronSchedule"
 
       , testCase "non-verbose" $
           "At 02:01, on day 3 of the month" @=? describeNV "1 2 3 * *"
+
+      , testCase "12-hour (verbose)" $
+          "At 02:01 AM, on day 3 of the month, every day of the week" @=? describe12 "1 2 3 * *"
     ]
     , testGroup "describes list values" [
         testCase "verbose" $
@@ -61,19 +63,32 @@ describeDisplayCronSchedule = testGroup "describeCronSchedule"
     ]
     ,
     testGroup "describes complicated times" [
-      testCase "describes specific times" $
-        "At 02:01, every day, every day of the week" @=? describeV "1 2 * * *"
+      testCase "describes specific times - twenty four hour" $
+        "At 13:01, every day, every day of the week" @=? describeV "1 13 * * *"
 
-    , testCase "describes a range of minutes" $
-        "Every minute between 02:01 and 02:10, every day, every day of the week" @=? describeV "1-10 2 * * *"
+    , testCase "describes specific times - twelve hour" $
+      "At 01:01 PM, every day, every day of the week" @=? describe12 "1 13 * * *"
+
+    , testCase "describes a range of minutes - twenty four hour" $
+        "Every minute between 12:01 and 12:10, every day, every day of the week" @=? describeV "1-10 12 * * *"
+
+    , testCase "describes a range of minutes - twelve hour" $
+        "Every minute between 12:01 PM and 12:10 PM, every day, every day of the week" @=? describe12 "1-10 12 * * *"
 
     , testGroup "describes times for lists of hours" [
-        testCase "simple list of hours" $
+        testCase "simple list of hours - twenty four hour" $
           "At 02:01 and 03:01, every day, every day of the week" @=? describeV "1 2,3 * * *"
 
-      , testCase "list of hours, and range" $
-          "At 02:01, 03:01 and at 1 minutes past the hour between 04:00 and 11:00, every day, every day of the week" @=?
-          describeV "1 2,3,4-11 * * *"
+      , testCase "simple list of hours - twelve hour" $
+        "At 02:01 AM and 03:01 AM, every day, every day of the week" @=? describe12 "1 2,3 * * *"
+
+      , testCase "list of hours, and range - twenty four hour" $
+          "At 02:01, 03:01 and at 1 minutes past the hour between 04:00 and 13:00, every day, every day of the week" @=?
+          describeV "1 2,3,4-13 * * *"
+
+      , testCase "list of hours, and range - twelve hour" $
+          "At 02:01 AM, 03:01 AM and at 1 minutes past the hour between 04:00 AM and 01:00 PM, every day, every day of the week" @=?
+          describe12 "1 2,3,4-13 * * *"
 
       , testCase "list of hours, and star" $
           "At 1 minutes past the hour, every hour, every day, every day of the week" @=? describeV "1 2,* * * *"
@@ -103,5 +118,6 @@ describeDisplayCronSchedule = testGroup "describeCronSchedule"
   ]
   where
     mkCronSchedule t = let (Right cs) = parseCronSchedule t in cs
-    describeNV = describe (twentyFourHourFormat S.<> notVerbose) . mkCronSchedule
-    describeV  = describe (twentyFourHourFormat S.<> verbose) . mkCronSchedule
+    describeNV = describe (twentyFourHourFormat <> notVerbose) . mkCronSchedule
+    describeV  = describe (twentyFourHourFormat <> verbose) . mkCronSchedule
+    describe12 = describe verbose . mkCronSchedule

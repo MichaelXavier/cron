@@ -6,7 +6,7 @@ newtype Minute = Minute Int
 newtype Hour   = Hour Int
 
 format :: TimeFormat -> Minute -> Hour -> String
-format t (Minute m) (Hour h) = leftPad h ++ ":" ++ leftPad m ++ suffix t
+format t (Minute m) (Hour h) = leftPad (hour t) ++ ":" ++ leftPad m ++ suffix t
   where leftPad n
           | n < 10    = "0" ++ show n
           | otherwise = show n
@@ -14,3 +14,7 @@ format t (Minute m) (Hour h) = leftPad h ++ ":" ++ leftPad m ++ suffix t
         suffix Hour12
           | h < 12    = " AM"
           | otherwise = " PM"
+        hour Hour24 = h
+        hour Hour12
+          | h > 12 = h `mod` 12
+          | otherwise = h

@@ -72,12 +72,12 @@ describeBenchmarks :: Benchmark
 describeBenchmarks = bgroup "description"
   [
     bgroup "verbose" [
-      bench "simple" (whnf (describe Verbose) simpleCronSchedule)
-    , bench "complicated" (whnf (describe Verbose) complexCronSchedule )
+      bench "simple" (whnf (describe verbose) simpleCronSchedule)
+    , bench "complicated" (whnf (describe verbose) complexCronSchedule)
     ]
   , bgroup "non-verbose" [
-      bench "simple" (whnf (describe NotVerbose) simpleCronSchedule)
-    , bench "complicated" (whnf (describe NotVerbose) complexCronSchedule)
+      bench "simple" (whnf (describe notVerbose) simpleCronSchedule)
+    , bench "complicated" (whnf (describe notVerbose) complexCronSchedule)
     ]
   ]
 
