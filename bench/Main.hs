@@ -22,6 +22,7 @@ main = defaultMain
   , scheduleMatchesBenchmarks
   , nextMatchBenchmarks
   , serializeBenchmarks
+  , describeBenchmarks
   ]
 
 
@@ -67,6 +68,21 @@ serializeBenchmarks = bgroup "serialization"
 
 
 -------------------------------------------------------------------------------
+describeBenchmarks :: Benchmark
+describeBenchmarks = bgroup "description"
+  [
+    bgroup "verbose" [
+      bench "simple" (whnf (describe verbose) simpleCronSchedule)
+    , bench "complicated" (whnf (describe verbose) complexCronSchedule)
+    ]
+  , bgroup "non-verbose" [
+      bench "simple" (whnf (describe notVerbose) simpleCronSchedule)
+    , bench "complicated" (whnf (describe notVerbose) complexCronSchedule)
+    ]
+  ]
+
+
+-------------------------------------------------------------------------------
 parserBench :: String -> Parser a -> Text -> Benchmark
 parserBench n parser txt = bench n (whnf (parseOnly parser) txt)
 
@@ -86,9 +102,24 @@ cronTabText = T.unlines (concat (zipWith (\x y -> [x,y]) (replicate 50 cronSched
 
 
 -------------------------------------------------------------------------------
+mkCronSchedule :: Text -> CronSchedule
+mkCronSchedule t = let (Right cs) = parseCronSchedule t in cs
+
+
+-------------------------------------------------------------------------------
+simpleCronSchedule :: CronSchedule
+simpleCronSchedule = mkCronSchedule "1 2 3 * *"
+
+
+-------------------------------------------------------------------------------
+complexCronSchedule :: CronSchedule
+complexCronSchedule = mkCronSchedule "1-10 3 1-20/2 * 3,5"
+
+
+-------------------------------------------------------------------------------
 exampleCrontab :: Crontab
 exampleCrontab = Crontab (concat (zipWith (\x y -> [x,y]) (replicate 50 cmd) (repeat envSet)))
-  where 
+  where
     cmd = CommandEntry weekly (CronCommand "do something")
     envSet = EnvVariable "FOO" "BAR"
 
