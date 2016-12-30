@@ -50,8 +50,6 @@ library
                    , System.Cron.Internal.Describe.Types
                    , System.Cron.Internal.Describe.Utils
                    , System.Cron.Internal.Check
-                  --  , System.Cron.Internal.DescribeTypes
-                  --  , System.Cron.Internal.DescribeUtils
                    , System.Cron.Describe
                    , System.Cron.Parser
                    , System.Cron.Schedule
@@ -66,7 +64,7 @@ library
                    , mtl             >= 2.0.1
                    , mtl-compat      >= 0.2.1
                    , semigroups
-                   , data-default-class >= 0.1.2
+                   , data-default-class >= 0.0.1
   if flag(lib-Werror)
     ghc-options: -Werror
 
