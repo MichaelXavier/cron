@@ -1,5 +1,6 @@
 {-# LANGUAGE ViewPatterns    #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE CPP             #-}
 --------------------------------------------------------------------
 -- |
 -- Module      : System.Cron.Describe
@@ -15,10 +16,11 @@
 -- >
 -- > main :: IO ()
 -- > main = do
--- >   either print (print . describe defaultOpts) $
--- >      parseCronSchedule "*/2 * 3 * 4,5,6"
--- >   either print (print . describe (twentyFourHourFormat <> verbose)) $
--- >      parseCronSchedule "*/2 12 3 * 4,5,6"
+-- >   let Right cs1 = parseCronSchedule "*/2 * 3 * 4,5,6"
+-- >   print $ describe defaultOpts cs1
+-- >
+-- >   let Right cs2 = parseCronSchedule "*/2 12 3 * 4,5,6"
+-- >   print $ describe (twentyFourHourFormat <> verbose) cs2
 --------------------------------------------------------------------
 module System.Cron.Describe
     (
@@ -37,7 +39,9 @@ module System.Cron.Describe
 import Control.Monad
 import Data.List.NonEmpty                       (NonEmpty (..), toList)
 import Data.Maybe                               (fromJust)
+#if !MIN_VERSION_base(4,8,0)
 import Data.Traversable                         (traverse)
+#endif
 -------------------------------------------------------------------------------
 import System.Cron.Internal.Describe.Descriptors
 import System.Cron.Internal.Describe.Options
