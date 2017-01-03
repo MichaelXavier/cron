@@ -46,6 +46,10 @@ module System.Cron.Types
     -- * Rendering
     , serializeCronSchedule
     , serializeCrontab
+
+    -- * Converting to human-readable string
+    -- , displayCronField
+    -- , Display(..)
     ) where
 
 

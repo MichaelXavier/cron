@@ -15,7 +15,7 @@
 -- > import System.Cron.Parser
 -- >
 -- > main :: IO ()
--- > main = don
+-- > main = do
 -- >   print $ parseCronSchedule "*/2 * 3 * 4,5,6"
 --
 --------------------------------------------------------------------
