@@ -1,3 +1,5 @@
+# 0.5.0
+* Add System.Cron.Describe which describes cron schedules in words (English only for now). Big thanks to Joe Canero for this feature!
 # 0.4.2
 * Drop dependency on derive in tests.
 * Add some Generic and Typeable instances.
