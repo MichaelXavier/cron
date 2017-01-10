@@ -10,7 +10,7 @@ people are used to.
 `scheduleMatches`, which you can use to compare a time against a `CronSchedule`
 to see if an action needs to be performed.  System.Cron.Parser is where you will
 find the parsers `cronSchedule`, `crontabEntry` and `cronTab`. To parse
-individual schedules up to full crontab files. System.Cron.Descrive is where
+individual schedules up to full crontab files. System.Cron.Describe is where
 you will find the `describe` function for creating human-readable strings from
 cron schedules, as well as any options to control how the description is created.
 
