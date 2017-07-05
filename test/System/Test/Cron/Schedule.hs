@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module System.Test.Cron.Schedule
     ( tests
     ) where
