@@ -53,7 +53,7 @@ import           Control.Monad.Except
 import           Control.Monad.Identity
 import           Control.Monad.State
 import           Data.Attoparsec.Text       (parseOnly)
-import           Data.Text                  (pack)
+import           Data.Text                  (Text)
 import           Data.Time
 #if !MIN_VERSION_time(1,5,0)
 import           System.Locale
@@ -115,11 +115,11 @@ runScheduleT = runExceptT . flip runStateT [] . unSchedule
 
 -------------------------------------------------------------------------------
 class MonadSchedule m where
-    addJob ::  IO () -> String -> m ()
+    addJob ::  IO () -> Text -> m ()
 
 instance (Monad m) => MonadSchedule (ScheduleT m) where
     addJob a t = do s :: Jobs <- get
-                    case parseOnly cronSchedule (pack t) of
+                    case parseOnly cronSchedule t of
                         Left  e  -> throwError $ ParseError e
                         Right t' -> put $ Job t' a : s
 
