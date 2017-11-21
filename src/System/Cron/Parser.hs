@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 --------------------------------------------------------------------
 -- |
@@ -32,12 +33,13 @@ module System.Cron.Parser
     ) where
 
 -------------------------------------------------------------------------------
-import           Control.Applicative  as Ap
-import           Data.Attoparsec.Text (Parser)
-import qualified Data.Attoparsec.Text as A
-import           Data.Char            (isSpace)
-import           Data.List.NonEmpty   (NonEmpty (..))
-import           Data.Text            (Text)
+import           Control.Applicative        as Ap
+import           Data.Attoparsec.Combinator (choice)
+import           Data.Attoparsec.Text       (Parser)
+import qualified Data.Attoparsec.Text       as A
+import           Data.Char                  (isSpace)
+import           Data.List.NonEmpty         (NonEmpty (..))
+import           Data.Text                  (Text, toLower)
 -------------------------------------------------------------------------------
 import           System.Cron.Types
 -------------------------------------------------------------------------------
@@ -97,7 +99,7 @@ crontabEntry = A.skipSpace *> parser
 
 
 parseCronSchedule :: Text -> Either String CronSchedule
-parseCronSchedule = A.parseOnly cronSchedule
+parseCronSchedule = A.parseOnly cronSchedule . toLower
 
 
 -------------------------------------------------------------------------------
@@ -135,21 +137,21 @@ classicP = CronSchedule <$> (minutesP    <* space)
 
 
 -------------------------------------------------------------------------------
-cronFieldP :: Parser CronField
-cronFieldP = stepP  <|>
-             listP  <|>
-             fieldP
-
+cronFieldP :: StringSupport -> Parser CronField
+cronFieldP stringSupport =
+    stepP  <|>
+    listP  <|>
+    fieldP
   where
-    fieldP        = Field <$> baseFieldP
-    listP         = ListField <$> neListP baseFieldP
-    stepP         = StepField' <$> stepFieldP
+    fieldP        = Field <$> baseFieldP stringSupport
+    listP         = ListField <$> neListP (baseFieldP stringSupport)
+    stepP         = StepField' <$> stepFieldP stringSupport
 
 
 -------------------------------------------------------------------------------
-stepFieldP :: Parser StepField
-stepFieldP = do
-  f <- baseFieldP
+stepFieldP :: StringSupport -> Parser StepField
+stepFieldP ss = do
+  f <- baseFieldP ss
   _ <- A.char '/'
   mParse (mkStepField f) "invalid stepping" =<< parseInt
 
@@ -164,29 +166,27 @@ neListP p = coerceNE =<< A.sepBy1 p (A.char ',')
 
 
 -------------------------------------------------------------------------------
-baseFieldP :: Parser BaseField
-baseFieldP = rangeP <|>
-             starP  <|>
-             specificP
+baseFieldP :: StringSupport -> Parser BaseField
+baseFieldP ss = rangeP <|>
+                starP  <|>
+                specificP
   where starP         = A.char '*' *> Ap.pure Star
-        rangeP        = RangeField' <$> rangeFieldP
-        specificP     = SpecificField' <$> specificFieldP
+        rangeP        = RangeField' <$> rangeFieldP ss
+        specificP     = SpecificField' <$> specificFieldP ss
 
 
 -------------------------------------------------------------------------------
-specificFieldP :: Parser SpecificField
-specificFieldP =
-  mParse mkSpecificField "specific field value out of range" =<< parseInt
-
+specificFieldP :: StringSupport -> Parser SpecificField
+specificFieldP ss =
+  mParse mkSpecificField "specific field value out of range"
+    =<< supportParser ss
 
 -------------------------------------------------------------------------------
-rangeFieldP :: Parser RangeField
-rangeFieldP = do
-  begin <- parseInt
-
-
+rangeFieldP :: StringSupport -> Parser RangeField
+rangeFieldP ss = do
+  begin <- supportParser ss
   _ <- A.char '-'
-  end <- parseInt
+  end <- supportParser ss
   mParse (mkRangeField begin) "start of range must be less than or equal to end" end
 
 
@@ -217,33 +217,85 @@ hourlyP  = A.string "@hourly"  *> pure hourly
 
 -------------------------------------------------------------------------------
 minutesP :: Parser MinuteSpec
-minutesP = mParse mkMinuteSpec "minutes out of range" =<< cronFieldP
+minutesP = mParse mkMinuteSpec "minutes out of range" =<< cronFieldP NoString
 
 
 -------------------------------------------------------------------------------
 hoursP :: Parser HourSpec
-hoursP = mParse mkHourSpec "hours out of range" =<< cronFieldP
+hoursP = mParse mkHourSpec "hours out of range" =<< cronFieldP NoString
 
 
 -------------------------------------------------------------------------------
 dayOfMonthP :: Parser DayOfMonthSpec
-dayOfMonthP = mParse mkDayOfMonthSpec "day of month out of range" =<< cronFieldP
+dayOfMonthP = mParse mkDayOfMonthSpec "day of month out of range" =<< cronFieldP NoString
 
 
 -------------------------------------------------------------------------------
 monthP :: Parser MonthSpec
-monthP = mParse mkMonthSpec "month out of range" =<< cronFieldP
+monthP = mParse mkMonthSpec "month out of range" =<< cronFieldP MonthString
 
 
 -------------------------------------------------------------------------------
 dayOfWeekP :: Parser DayOfWeekSpec
-dayOfWeekP = mParse mkDayOfWeekSpec "day of week out of range" =<< cronFieldP
+dayOfWeekP = mParse mkDayOfWeekSpec "day of week out of range" =<< cronFieldP DayString
 
 
 -------------------------------------------------------------------------------
 parseInt :: Parser Int
 parseInt = A.decimal
 
+-------------------------------------------------------------------------------
+data StringSupport
+    = MonthString
+    | DayString
+    | NoString
+    deriving Eq
+
+-------------------------------------------------------------------------------
+supportParser :: StringSupport -> Parser Int
+supportParser = \case
+    MonthString -> choice [parseMonth, parseInt]
+    DayString -> choice [parseDay, parseInt]
+    NoString -> parseInt
+
+-------------------------------------------------------------------------------
+
+toI :: Int -> Text -> Parser Int
+toI int str = const int <$> A.string str
+
+-------------------------------------------------------------------------------
+parseDay :: Parser Int
+parseDay =
+    choice $
+        zipWith toI
+            [1 .. 7]
+            [ "mon"
+            , "tue"
+            , "wed"
+            , "thu"
+            , "fri"
+            , "sat"
+            , "sun"
+            ]
+
+-------------------------------------------------------------------------------
+parseMonth :: Parser Int
+parseMonth =
+    choice $
+        zipWith toI
+            [1 .. 12]
+            [ "jan"
+            , "feb"
+            , "mar"
+            , "apr"
+            , "may"
+            , "jun"
+            , "jul"
+            , "aug"
+            , "sep"
+            , "oct"
+            , "nov"
+            , "dec"]
 
 -------------------------------------------------------------------------------
 mParse :: (Monad m) => (a -> Maybe b) -> String -> a -> m b
