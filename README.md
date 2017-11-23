@@ -71,3 +71,4 @@ main = do
 * [Andrew Rademacher](https://github.com/AndrewRademacher)
 * [Peter Simons](https://github.com/peti)
 * [Joseph Canero](https://github.com/caneroj1)
+* [Ahti Katiska](https://github.com/HariGyogu)
