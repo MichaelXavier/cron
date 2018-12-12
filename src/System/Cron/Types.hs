@@ -55,6 +55,7 @@ module System.Cron.Types
 
 -------------------------------------------------------------------------------
 import           Control.Applicative as A
+import           Data.Data           (Data)
 import qualified Data.Foldable       as FT
 import           Data.Ix
 import           Data.List.NonEmpty  (NonEmpty (..))
@@ -132,7 +133,7 @@ data CronSchedule = CronSchedule {
     , dayOfMonth :: DayOfMonthSpec -- ^ Which days of the month to run. Third field in a cron specification.
     , month      :: MonthSpec      -- ^ Which months to run. Fourth field in a cron specification.
     , dayOfWeek  :: DayOfWeekSpec  -- ^ Which days of the week to run. Fifth field in a cron specification.
-    } deriving (Eq, Generic, Typeable)
+    } deriving (Eq, Generic, Data, Typeable)
 
 
 instance Show CronSchedule where
@@ -155,7 +156,7 @@ serializeCronSchedule = showT
 -- | Crontab file, omitting comments.
 newtype Crontab = Crontab {
       crontabEntries :: [CrontabEntry]
-    } deriving (Eq, Generic, Typeable)
+    } deriving (Eq, Generic, Data, Typeable)
 
 
 instance ShowT Crontab where
@@ -173,7 +174,7 @@ serializeCrontab = showT
 -------------------------------------------------------------------------------
 newtype CronCommand = CronCommand {
       cronCommand :: Text
-    } deriving (Show, Eq, Ord, ShowT, Generic, Typeable)
+    } deriving (Show, Eq, Ord, ShowT, Generic, Data, Typeable)
 
 
 -------------------------------------------------------------------------------
@@ -181,7 +182,7 @@ newtype CronCommand = CronCommand {
 -- command after it or setting an environment variable (e.g. FOO=BAR)
 data CrontabEntry = CommandEntry CronSchedule CronCommand
                   | EnvVariable Text Text
-                  deriving (Eq, Generic, Typeable)
+                  deriving (Eq, Generic, Data, Typeable)
 
 
 instance ShowT CrontabEntry where
@@ -196,7 +197,7 @@ instance Show CrontabEntry where
 -- | Minutes field of a cron expression
 newtype MinuteSpec = Minutes {
       minuteSpec :: CronField
-    } deriving (Eq, ShowT, Generic, Typeable)
+    } deriving (Eq, ShowT, Generic, Data, Typeable)
 
 
 instance Show MinuteSpec where
@@ -214,7 +215,7 @@ mkMinuteSpec cf
 -- | Hours field of a cron expression
 newtype HourSpec = Hours {
       hourSpec :: CronField
-    } deriving (Eq, ShowT, Generic, Typeable)
+    } deriving (Eq, ShowT, Generic, Data, Typeable)
 
 
 instance Show HourSpec where
@@ -231,7 +232,7 @@ mkHourSpec cf
 -- | Day of month field of a cron expression
 newtype DayOfMonthSpec = DaysOfMonth {
       dayOfMonthSpec :: CronField
-    } deriving (Eq, ShowT, Generic, Typeable)
+    } deriving (Eq, ShowT, Generic, Data, Typeable)
 
 
 instance Show DayOfMonthSpec where
@@ -248,7 +249,7 @@ mkDayOfMonthSpec cf
 -- | Month field of a cron expression
 newtype MonthSpec = Months {
       monthSpec :: CronField
-    } deriving (Eq, ShowT, Generic, Typeable)
+    } deriving (Eq, ShowT, Generic, Data, Typeable)
 
 
 instance Show MonthSpec where
@@ -265,7 +266,7 @@ mkMonthSpec cf
 -- | Day of week field of a cron expression
 newtype DayOfWeekSpec = DaysOfWeek {
       dayOfWeekSpec :: CronField
-    } deriving (Eq, ShowT, Generic, Typeable)
+    } deriving (Eq, ShowT, Generic, Data, Typeable)
 
 
 instance Show DayOfWeekSpec where
@@ -312,7 +313,7 @@ validBF (RangeField' (RangeField n1 n2)) mn mx =
 data BaseField = Star                         -- ^ Matches anything
                | SpecificField' SpecificField -- ^ Matches a specific value (e.g. 1)
                | RangeField' RangeField       -- ^ Matches a range of values (e.g. 1-3)
-               deriving (Eq, Generic, Typeable)
+               deriving (Eq, Generic, Data, Typeable)
 
 
 instance ShowT BaseField where
@@ -328,7 +329,7 @@ instance Show BaseField where
 -------------------------------------------------------------------------------
 newtype SpecificField = SpecificField {
       specificField :: Int
-    } deriving (Eq, ShowT, Generic, Typeable)
+    } deriving (Eq, ShowT, Generic, Data, Typeable)
 
 
 instance Show SpecificField where
@@ -345,7 +346,7 @@ mkSpecificField n
 data RangeField = RangeField {
       rfBegin :: Int
     , rfEnd   :: Int
-    } deriving (Eq, Generic, Typeable)
+    } deriving (Eq, Generic, Data, Typeable)
 
 
 instance ShowT RangeField where
@@ -367,7 +368,7 @@ mkRangeField x y
 data CronField = Field BaseField
                | ListField (NonEmpty BaseField) -- ^ Matches a list of expressions.
                | StepField' StepField           -- ^ Matches a stepped expression, e.g. (*/2).
-               deriving (Generic)
+               deriving (Generic, Data, Typeable)
 
 
 instance Eq CronField where
@@ -392,7 +393,7 @@ instance Show CronField where
 -------------------------------------------------------------------------------
 data StepField = StepField { sfField    :: BaseField
                            , sfStepping :: Int
-                           } deriving (Eq, Generic)
+                           } deriving (Eq, Generic, Data, Typeable)
 
 
 instance ShowT StepField where
