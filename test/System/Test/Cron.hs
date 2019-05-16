@@ -61,15 +61,15 @@ describeScheduleMatches = testGroup "scheduleMatches"
                       (day 5 3 13 2) @?= True
 
     , testCase "matches a monday as 1" $
-      scheduleMatches stars { dayOfWeek  = mkDayOfWeekSpec' (Field (SpecificField' (mkSpecificField' 1))) }
+      scheduleMatches stars { cronDayOfWeek  = mkDayOfWeekSpec' (Field (SpecificField' (mkSpecificField' 1))) }
                       (UTCTime (fromGregorian 2014 3 17) 0) @?= True
 
     , testCase "matches a sunday as 0" $
-      scheduleMatches stars { dayOfWeek  = mkDayOfWeekSpec' (Field (SpecificField' (mkSpecificField' 0))) }
+      scheduleMatches stars { cronDayOfWeek  = mkDayOfWeekSpec' (Field (SpecificField' (mkSpecificField' 0))) }
                       (UTCTime (fromGregorian 2014 3 16) 0) @?= True
 
     , testCase "matches a sunday as 7" $
-      scheduleMatches stars { dayOfWeek  = mkDayOfWeekSpec' (Field (SpecificField' (mkSpecificField' 7))) }
+      scheduleMatches stars { cronDayOfWeek  = mkDayOfWeekSpec' (Field (SpecificField' (mkSpecificField' 7))) }
                       (UTCTime (fromGregorian 2014 3 16) 0) @?= True
 
     , testCase "matches weekly on a sunday at 0:00" $
@@ -93,7 +93,7 @@ describeScheduleMatches = testGroup "scheduleMatches"
       -- example in EXAMPLE CRON FILE below).
       --
       -- so we deliberately set the correct day of month but wrong day of week
-      scheduleMatches stars { dayOfWeek = mkDayOfWeekSpec' (Field (SpecificField' (mkSpecificField' 1))),
+      scheduleMatches stars { cronDayOfWeek = mkDayOfWeekSpec' (Field (SpecificField' (mkSpecificField' 1))),
                               dayOfMonth = mkDayOfMonthSpec' (Field (SpecificField' (mkSpecificField' 1))) }
                       (UTCTime (fromGregorian 2014 11 1) 600) @?= True
     -- https://github.com/MichaelXavier/cron/issues/18
@@ -201,7 +201,7 @@ describeCronScheduleShow = testGroup "CronSchedule show"
     show stars @?= "CronSchedule * * * * *"
 
   , testCase "formats specific numbers" $
-    show stars { dayOfWeek = mkDayOfWeekSpec' (Field (SpecificField' (mkSpecificField' 3)))} @?=
+    show stars { cronDayOfWeek = mkDayOfWeekSpec' (Field (SpecificField' (mkSpecificField' 3)))} @?=
          "CronSchedule * * * * 3"
 
   , testCase "formats lists" $
@@ -285,7 +285,7 @@ describeNextMatch = testGroup "nextMatch"
       let t = posixSecondsToUTCTime 0
       let cs = stars { month = mkMonthSpec' (Field (SpecificField' (mkSpecificField' 9)))
                      , dayOfMonth = mkDayOfMonthSpec' (ListField (SpecificField' (mkSpecificField' 31) :| []))
-                     , dayOfWeek = mkDayOfWeekSpec' (ListField (Star :| []))
+                     , cronDayOfWeek = mkDayOfWeekSpec' (ListField (Star :| []))
                      }
       nextMatch cs t @?= Nothing
   ]

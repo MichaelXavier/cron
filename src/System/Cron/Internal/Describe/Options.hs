@@ -13,7 +13,6 @@ module System.Cron.Internal.Describe.Options where
 
 -------------------------------------------------------------------------------
 import Data.Default.Class
-import Data.Semigroup
 -------------------------------------------------------------------------------
 import System.Cron.Internal.Describe.Types
 -------------------------------------------------------------------------------

@@ -23,7 +23,6 @@ import           Data.Time.Clock           as X
 import           Data.Time.LocalTime       as X
 import           Debug.Trace               as X
 import qualified Generics.SOP              as SOP
-import qualified Generics.SOP.Constraint   as SOP
 import qualified Generics.SOP.GGP          as SOP
 import           GHC.Generics              (Generic)
 import           Test.QuickCheck.Instances ()
@@ -38,11 +37,11 @@ import           System.Cron               as X
 -- this workaround is in place until we successfully beat down the
 -- doors of castle QuickCheck and get generic deriving through. See
 -- <https://github.com/nick8325/quickcheck/pull/40>
-sopArbitrary :: (SOP.GTo b, SOP.SListI (SOP.GCode b), Generic b, SOP.AllF (SOP.All Arbitrary) (SOP.GCode b), SOP.AllF SOP.SListI (SOP.GCode b)) => Gen b
+sopArbitrary :: (SOP.GTo b, SOP.SListI (SOP.GCode b), Generic b, SOP.All (SOP.All Arbitrary) (SOP.GCode b), SOP.All SOP.SListI (SOP.GCode b)) => Gen b
 sopArbitrary = fmap SOP.gto sopArbitrary'
 
 
-sopArbitrary' :: (SOP.SListI xss, SOP.AllF SOP.SListI xss, SOP.AllF (SOP.All Arbitrary) xss) => Gen (SOP.SOP SOP.I xss)
+sopArbitrary' :: (SOP.SListI xss, SOP.All SOP.SListI xss, SOP.All (SOP.All Arbitrary) xss) => Gen (SOP.SOP SOP.I xss)
 sopArbitrary' = oneof (map SOP.hsequence $ SOP.apInjs_POP $ SOP.hcpure p arbitrary)
   where
     p :: Proxy Arbitrary
