@@ -173,7 +173,7 @@ description t c = Desc (describeTime t (minute c) (hour c))
                        (return ddow)
   where ddom = describeCronField domDescriptor $ dayOfMonthSpec (dayOfMonth c)
         dm   = describeCronField monthDescriptor $ monthSpec (month c)
-        ddow = describeCronField dowDescriptor $ dayOfWeekSpec (dayOfWeek c)
+        ddow = describeCronField dowDescriptor $ cronDayOfWeekSpec (cronDayOfWeek c)
 
 
 matchVerbosity :: Verbosity -> Description -> Description

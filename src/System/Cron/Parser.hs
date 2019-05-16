@@ -132,7 +132,7 @@ classicP = CronSchedule <$> (minutesP    <* space)
                         <*> (hoursP      <* space)
                         <*> (dayOfMonthP <* space)
                         <*> (monthP      <* space)
-                        <*> dayOfWeekP
+                        <*> cronDayOfWeekP
   where space = A.char ' '
 
 
@@ -236,8 +236,8 @@ monthP = mParse mkMonthSpec "month out of range" =<< cronFieldP MonthString
 
 
 -------------------------------------------------------------------------------
-dayOfWeekP :: Parser DayOfWeekSpec
-dayOfWeekP = mParse mkDayOfWeekSpec "day of week out of range" =<< cronFieldP DayString
+cronDayOfWeekP :: Parser DayOfWeekSpec
+cronDayOfWeekP = mParse mkDayOfWeekSpec "day of week out of range" =<< cronFieldP DayString
 
 
 -------------------------------------------------------------------------------

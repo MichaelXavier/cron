@@ -3,15 +3,17 @@ module System.Cron.Internal.Check where
 
 -------------------------------------------------------------------------------
 import           Control.Applicative         as A
+
 import qualified Data.Foldable               as FT
 import           Data.List
-import           Data.List.NonEmpty          (NonEmpty (..))
+import           Data.List.NonEmpty          (NonEmpty(..))
 import qualified Data.List.NonEmpty          as NE
 import           Data.Maybe
 import           Data.Semigroup              (sconcat)
-import           Data.Time
+import           Data.Time                   
 import           Data.Time.Calendar.WeekDate
 import qualified Data.Traversable            as FT
+
 -------------------------------------------------------------------------------
 import           System.Cron.Types
 -------------------------------------------------------------------------------
@@ -41,7 +43,7 @@ nextMatch cs@CronSchedule {..} now
       domStarSpec <- mkDayOfMonthSpec (Field Star)
       dowStarSpec <- mkDayOfWeekSpec (Field Star)
       let domStarResult = nextMatch cs { dayOfMonth = domStarSpec } now
-      let dowStarResult = nextMatch cs { dayOfWeek = dowStarSpec} now
+      let dowStarResult = nextMatch cs { cronDayOfWeek = dowStarSpec} now
       listToMaybe (sort (catMaybes [domStarResult, dowStarResult]))
   | otherwise = do
     expanded@Expanded {..} <- expand cs
@@ -50,7 +52,7 @@ nextMatch cs@CronSchedule {..} now
   where
     UTCTime startDay _ = addUTCTime 60 now
     domRestricted = restricted (dayOfMonthSpec dayOfMonth)
-    dowRestricted = restricted (dayOfWeekSpec dayOfWeek)
+    dowRestricted = restricted (cronDayOfWeekSpec cronDayOfWeek)
 
 
 -------------------------------------------------------------------------------
@@ -113,12 +115,12 @@ expand CronSchedule {..} = do
     hourF' = expandF (0, 23) (hourSpec hour)
     domF' = expandF (1, 31) (dayOfMonthSpec dayOfMonth)
     monthF' = expandF (1, 12) (monthSpec month)
-    dowF' = remapSunday <$> expandF (0, 7) (dayOfWeekSpec dayOfWeek)
+    dowF' = remapSunday <$> expandF (0, 7) (cronDayOfWeekSpec cronDayOfWeek)
     remapSunday lst = case NE.partition (\n -> n == 0 || n == 7) lst of
                         ([], _)       -> lst
                         (_, noSunday) -> 0 :| noSunday
     domRestricted = restricted (dayOfMonthSpec dayOfMonth)
-    dowRestricted = restricted (dayOfWeekSpec dayOfWeek)
+    dowRestricted = restricted (cronDayOfWeekSpec cronDayOfWeek)
     -- If DOM and DOW are restricted, they are ORed, so even if
     -- there's an invalid day for the month, it is still satisfiable
     -- because it will just choose the DOW path
@@ -257,7 +259,7 @@ scheduleMatches cs@CronSchedule {..} (UTCTime d t) =
         -- however, achieve the desired result by adding a test to the
         -- command (see the last example in EXAMPLE CRON FILE below).
         checkDOMAndDOW
-          | restricted (dayOfMonthSpec dayOfMonth) && restricted (dayOfWeekSpec dayOfWeek) =
+          | restricted (dayOfMonthSpec dayOfMonth) && restricted (cronDayOfWeekSpec cronDayOfWeek) =
               domMatches || dowMatches
           | otherwise = domMatches && dowMatches
         domMatches = FT.elem dom domF

@@ -76,19 +76,19 @@ describeCronSchedule = testGroup "cronSchedule"
 
   , testCase "parses ranges at the last field" $
     assertSuccessfulParse "* * * * 3-4"
-                           stars { dayOfWeek  = mkDayOfWeekSpec' (Field (RangeField' (mkRangeField' 3 4))) }
+                           stars { cronDayOfWeek  = mkDayOfWeekSpec' (Field (RangeField' (mkRangeField' 3 4))) }
   , testCase "parses lists at the last field" $
     assertSuccessfulParse "* * * * 3,4"
-                           stars { dayOfWeek  = mkDayOfWeekSpec' (ListField (SpecificField' (mkSpecificField' 3) :| [SpecificField' (mkSpecificField' 4)])) }
+                           stars { cronDayOfWeek  = mkDayOfWeekSpec' (ListField (SpecificField' (mkSpecificField' 3) :| [SpecificField' (mkSpecificField' 4)])) }
   , testCase "parses steps at the last field" $
     assertSuccessfulParse "* * * * */4"
-                           stars { dayOfWeek  = mkDayOfWeekSpec' (StepField' (mkStepField' Star 4)) }
+                           stars { cronDayOfWeek  = mkDayOfWeekSpec' (StepField' (mkStepField' Star 4)) }
   , testCase "parses a sunday as 7" $
     assertSuccessfulParse "* * * * 7"
-                           stars { dayOfWeek  = mkDayOfWeekSpec' (Field (SpecificField' (mkSpecificField' 7))) }
+                           stars { cronDayOfWeek  = mkDayOfWeekSpec' (Field (SpecificField' (mkSpecificField' 7))) }
   , testCase "parses a sunday as 0" $
     assertSuccessfulParse "* * * * 0"
-                           stars { dayOfWeek  = mkDayOfWeekSpec' (Field (SpecificField' (mkSpecificField' 0))) }
+                           stars { cronDayOfWeek  = mkDayOfWeekSpec' (Field (SpecificField' (mkSpecificField' 0))) }
   , testCase "parses another example" $
     assertSuccessfulParse "1-59/2 * * * *"
                           stars { minute     = mkMinuteSpec' (StepField' (mkStepField' (RangeField' (mkRangeField' 1 59)) 2)) }
