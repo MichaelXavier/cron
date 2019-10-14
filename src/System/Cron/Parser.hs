@@ -298,5 +298,5 @@ parseMonth =
             , "dec"]
 
 -------------------------------------------------------------------------------
-mParse :: (Monad m) => (a -> Maybe b) -> String -> a -> m b
+mParse :: (Monad m, MonadFail m) => (a -> Maybe b) -> String -> a -> m b
 mParse f msg = maybe (fail msg) return . f

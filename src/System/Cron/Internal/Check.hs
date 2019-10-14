@@ -13,7 +13,7 @@ import           Data.Time
 import           Data.Time.Calendar.WeekDate
 import qualified Data.Traversable            as FT
 -------------------------------------------------------------------------------
-import           System.Cron.Types
+import           System.Cron.Types           as CT
 -------------------------------------------------------------------------------
 
 
@@ -41,7 +41,7 @@ nextMatch cs@CronSchedule {..} now
       domStarSpec <- mkDayOfMonthSpec (Field Star)
       dowStarSpec <- mkDayOfWeekSpec (Field Star)
       let domStarResult = nextMatch cs { dayOfMonth = domStarSpec } now
-      let dowStarResult = nextMatch cs { dayOfWeek = dowStarSpec} now
+      let dowStarResult = nextMatch cs { CT.dayOfWeek = dowStarSpec} now
       listToMaybe (sort (catMaybes [domStarResult, dowStarResult]))
   | otherwise = do
     expanded@Expanded {..} <- expand cs
