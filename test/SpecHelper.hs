@@ -18,8 +18,9 @@ import qualified Data.List.NonEmpty    as NE
 import           Data.Maybe            as X
 import           Data.Monoid           as X
 import           Data.Text             (Text)
-import           Data.Time.Calendar    as X
-import           Data.Time.Clock       as X
+import           Data.Time.Calendar    as X (fromGregorian, toGregorian)
+import           Data.Time.Clock       as X (DiffTime, UTCTime (..), addUTCTime,
+                                             secondsToDiffTime)
 import qualified Data.Time.Clock.POSIX as POSIX
 import           Data.Time.LocalTime   as X
 import           Debug.Trace           as X

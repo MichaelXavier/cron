@@ -30,7 +30,7 @@ before_install:
 script:
   - stack $ARGS setup
   - travis_wait 45 sleep 1800 &
-  - stack $ARGS --no-terminal test --haddock --test-arguments='--quickcheck-tests=5000'
+  - stack $ARGS --no-terminal test --haddock
   - stack $ARGS bench
   - stack $ARGS build
   - stack $ARGS sdist
