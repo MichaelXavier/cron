@@ -4,6 +4,7 @@ module System.Test.Cron.Parser (tests) where
 -------------------------------------------------------------------------------
 import           Data.List.NonEmpty (NonEmpty (..))
 import           Data.Text          (Text)
+import           Hedgehog
 -------------------------------------------------------------------------------
 import           SpecHelper
 -------------------------------------------------------------------------------
@@ -175,7 +176,8 @@ describeCrontabEntry = testGroup "crontabEntry"
 describeSerializeParseCronSchedule :: TestTree
 describeSerializeParseCronSchedule = testGroup "serialize/parse CronSchedule"
   [
-    testProperty "roundtrips" $ \cs -> do
+    testProperty "roundtrips" $ property $ do
+      cs <- forAll gen
       parseCronSchedule (serializeCronSchedule cs) === Right cs
   ]
 
@@ -184,7 +186,8 @@ describeSerializeParseCronSchedule = testGroup "serialize/parse CronSchedule"
 describeSerializeParseCrontab :: TestTree
 describeSerializeParseCrontab = testGroup "serialize/parse Crontab"
   [
-    testProperty "roundtrips" $ \ct -> do
+    testProperty "roundtrips" $ property $ do
+      ct <- forAll gen
       parseCrontab (serializeCrontab ct) === Right ct
   ]
 

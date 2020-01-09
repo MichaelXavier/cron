@@ -85,14 +85,13 @@ test-suite test
                   , cron
                   , tasty
                   , tasty-hunit
-                  , tasty-quickcheck
+                  , tasty-hedgehog
+                  , hedgehog
                   , attoparsec
                   , text
                   , time
                   , transformers-compat
                   , semigroups
-                  , quickcheck-instances
-                  , generics-sop >= 0.2
 
   if flag(lib-Werror)
     ghc-options: -Werror

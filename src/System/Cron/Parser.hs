@@ -34,6 +34,7 @@ module System.Cron.Parser
 
 -------------------------------------------------------------------------------
 import           Control.Applicative        as Ap
+import           Control.Monad.Fail         as F
 import           Data.Attoparsec.Combinator (choice)
 import           Data.Attoparsec.Text       (Parser)
 import qualified Data.Attoparsec.Text       as A
@@ -160,8 +161,8 @@ stepFieldP ss = do
 neListP :: Parser a -> Parser (NonEmpty a)
 neListP p = coerceNE =<< A.sepBy1 p (A.char ',')
   where
-    coerceNE []     = fail "expected non-empty list"
-    coerceNE [_]    = fail "invalid singleton list"
+    coerceNE []     = F.fail "expected non-empty list"
+    coerceNE [_]    = F.fail "invalid singleton list"
     coerceNE (x:xs) = return $ x :| xs
 
 
@@ -299,4 +300,4 @@ parseMonth =
 
 -------------------------------------------------------------------------------
 mParse :: (Monad m, MonadFail m) => (a -> Maybe b) -> String -> a -> m b
-mParse f msg = maybe (fail msg) return . f
+mParse f msg = maybe (F.fail msg) return . f

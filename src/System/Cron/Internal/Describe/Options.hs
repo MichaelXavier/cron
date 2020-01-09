@@ -13,7 +13,7 @@ module System.Cron.Internal.Describe.Options where
 
 -------------------------------------------------------------------------------
 import Data.Default.Class
-import Data.Semigroup
+import Data.Semigroup as Semigroup
 -------------------------------------------------------------------------------
 import System.Cron.Internal.Describe.Types
 -------------------------------------------------------------------------------
@@ -77,7 +77,7 @@ data Options = Opts {
 instance Default Options where
   def = Opts {timeFormat = Hour12, verbosity = NotVerbose}
 
-instance Semigroup OptionBuilder where
+instance Semigroup.Semigroup OptionBuilder where
   (Builder f) <> (Builder a) = Builder (a . f)
 
 instance Monoid OptionBuilder where

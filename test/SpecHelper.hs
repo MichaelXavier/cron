@@ -1,6 +1,8 @@
 {-# LANGUAGE ConstraintKinds       #-}
+{-# LANGUAGE DefaultSignatures     #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeOperators         #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE TemplateHaskell       #-}
 module SpecHelper
@@ -10,117 +12,109 @@ module SpecHelper
 
 
 -------------------------------------------------------------------------------
-import           Control.Applicative       as X
-import           Data.Attoparsec.Text      as X (Parser, parseOnly)
-import qualified Data.List.NonEmpty        as NE
-import           Data.Maybe                as X
-import           Data.Monoid               as X
-import           Data.Proxy                (Proxy (..))
-import           Data.Text                 (Text)
-import qualified Data.Text                 as T
-import           Data.Time.Calendar        as X
-import           Data.Time.Clock           as X
-import           Data.Time.LocalTime       as X
-import           Debug.Trace               as X
-import qualified Generics.SOP              as SOP
-import qualified Generics.SOP.Constraint   as SOP
-import qualified Generics.SOP.GGP          as SOP
-import           GHC.Generics              (Generic)
-import           Test.QuickCheck.Instances ()
-import           Test.Tasty                as X
-import           Test.Tasty.HUnit          as X
-import           Test.Tasty.QuickCheck     as X
+import           Control.Applicative   as X
+import           Data.Attoparsec.Text  as X (Parser, parseOnly)
+import qualified Data.List.NonEmpty    as NE
+import           Data.Maybe            as X
+import           Data.Monoid           as X
+import           Data.Text             (Text)
+import           Data.Time.Calendar    as X
+import           Data.Time.Clock       as X
+import qualified Data.Time.Clock.POSIX as POSIX
+import           Data.Time.LocalTime   as X
+import           Debug.Trace           as X
+import           GHC.Generics          (Generic)
+import qualified GHC.Generics          as G
+import           Hedgehog
+import qualified Hedgehog.Gen          as Gen
+import qualified Hedgehog.Range        as Range
+import           Test.Tasty            as X
+import           Test.Tasty.Hedgehog   as X
+import           Test.Tasty.HUnit      as X
 -------------------------------------------------------------------------------
-import           System.Cron               as X
+import           System.Cron           as X
 -------------------------------------------------------------------------------
 
 
--- this workaround is in place until we successfully beat down the
--- doors of castle QuickCheck and get generic deriving through. See
--- <https://github.com/nick8325/quickcheck/pull/40>
-sopArbitrary :: (SOP.GTo b, SOP.SListI (SOP.GCode b), Generic b, SOP.AllF (SOP.All Arbitrary) (SOP.GCode b), SOP.AllF SOP.SListI (SOP.GCode b)) => Gen b
-sopArbitrary = fmap SOP.gto sopArbitrary'
+-- | A necessary evil for generators that can generically make sure
+-- all constructors of your sum type are covered. The tradeoff is that
+-- you have no control over the range at the per-test level, so use
+-- this sparingly where full coverage is more valuable than
+-- fine-tuning generators.
+class HasGen a where
+  gen :: Gen a
+  default gen :: (Generic a, GHasGen (G.Rep a)) => Gen a
+  gen = Gen.choice (fmap G.to <$> ggen)
 
 
-sopArbitrary' :: (SOP.SListI xss, SOP.AllF SOP.SListI xss, SOP.AllF (SOP.All Arbitrary) xss) => Gen (SOP.SOP SOP.I xss)
-sopArbitrary' = oneof (map SOP.hsequence $ SOP.apInjs_POP $ SOP.hcpure p arbitrary)
-  where
-    p :: Proxy Arbitrary
-    p = Proxy
+class GHasGen f where
+  ggen :: [Gen (f a)]
+
+instance GHasGen G.U1 where
+  ggen = [pure G.U1]
+
+instance (HasGen a) => GHasGen (G.K1 i a) where
+  ggen = [G.K1 <$> gen]
+
+instance (GHasGen a, GHasGen b) => GHasGen (a G.:*: b) where
+  ggen = [ (G.:*:) <$> f <*> g | f <- ggen, g <- ggen]
+
+instance (GHasGen a, GHasGen b) => GHasGen (a G.:+: b) where
+  ggen = (fmap G.L1 <$> ggen) <> (fmap G.R1 <$> ggen)
+
+-- we don't care about metadata, lift over it
+instance (GHasGen c) => GHasGen (G.M1 _a _b c) where
+  ggen = fmap G.M1 <$> ggen
 
 
-instance Arbitrary BaseField where
-  arbitrary = sopArbitrary
-  shrink = genericShrink
+instance HasGen BaseField
+instance HasGen SpecificField
+instance HasGen RangeField
+instance HasGen Int where
+  gen = Gen.int Range.linearBounded
+instance HasGen Text where
+  gen = genAlpha
+instance HasGen CronField
+instance HasGen a => HasGen (NE.NonEmpty a) where
+  gen = Gen.nonEmpty (Range.linear 1 50) gen
+instance HasGen a => HasGen [a] where
+  gen = Gen.list (Range.linear 0 50) gen
+instance HasGen StepField where
+  gen = Gen.just (mkStepField <$> gen <*> gen)
+instance HasGen CronSchedule
+instance HasGen Crontab
+instance HasGen CronCommand where
+  gen = CronCommand <$> genAlpha
+instance HasGen CrontabEntry
+instance HasGen MinuteSpec where
+  gen = Gen.just (mkMinuteSpec <$> gen)
+instance HasGen HourSpec where
+  gen = Gen.just (mkHourSpec <$> gen)
+instance HasGen DayOfMonthSpec where
+  gen = Gen.just (mkDayOfMonthSpec <$> gen)
+instance HasGen DayOfWeekSpec where
+  gen = Gen.just (mkDayOfWeekSpec <$> gen)
+instance HasGen MonthSpec where
+  gen = Gen.just (mkMonthSpec <$> gen)
+instance HasGen UTCTime where
+  gen = genUTCTime
+
+genAlpha :: Gen Text
+genAlpha = Gen.text (Range.linear 1 50) Gen.alpha
 
 
-instance Arbitrary CronField where
-  arbitrary = oneof [ Field <$> arbitrary
-                    , ListField . NE.fromList . getNonEmpty <$> arbitrary
-                    , StepField' <$> arbitrary
-                    ]
+genUTCTime :: Gen UTCTime
+genUTCTime = genUTCTime' (Range.linear 0 maxBound)
 
 
-instance Arbitrary CronSchedule where
-  arbitrary = sopArbitrary
-  shrink = genericShrink
+-- | genUTCTime with a range of posix seconds
+genUTCTime' :: Range.Range Int -> Gen UTCTime
+genUTCTime' = fmap POSIX.posixSecondsToUTCTime . genPOSIXTime
 
 
-instance Arbitrary Crontab where
-  arbitrary = Crontab <$> resize 20 arbitrary
-
-
-instance Arbitrary CronCommand where
-  arbitrary = CronCommand <$> alphaGen
-
-
-instance Arbitrary CrontabEntry where
-  arbitrary = oneof [ CommandEntry <$> arbitrary <*> arbitrary
-                    , EnvVariable <$> alphaGen <*> alphaGen
-                    ]
-
-
-alphaGen :: Gen Text
-alphaGen = T.pack <$> listOf1 gen
-  where
-    gen = elements (['a'..'z'] <> ['A'..'Z'])
-
-instance Arbitrary MinuteSpec where
-  arbitrary = arbitraryMaybe mkMinuteSpec
-
-
-instance Arbitrary HourSpec where
-  arbitrary = arbitraryMaybe mkHourSpec
-
-
-instance Arbitrary DayOfMonthSpec where
-  arbitrary = arbitraryMaybe mkDayOfMonthSpec
-
-
-instance Arbitrary MonthSpec where
-  arbitrary = arbitraryMaybe mkMonthSpec
-
-
-instance Arbitrary DayOfWeekSpec where
-  arbitrary = arbitraryMaybe mkDayOfWeekSpec
-
-
-instance Arbitrary SpecificField where
-  arbitrary = arbitraryMaybe mkSpecificField
-
-
-instance Arbitrary RangeField where
-  arbitrary = arbitraryMaybe (uncurry mkRangeField)
-
-
-instance Arbitrary StepField where
-  arbitrary = arbitraryMaybe (uncurry mkStepField)
-
-
-arbitraryMaybe :: Arbitrary a => (a -> Maybe b) -> Gen b
-arbitraryMaybe f = do
-  a <- arbitrary `suchThat` (isJust . f)
-  return (fromJust (f a))
+genPOSIXTime :: Range.Range Int -> Gen POSIX.POSIXTime
+genPOSIXTime rnge = do
+  fromInteger . toInteger <$> Gen.int rnge
 
 
 mkMinuteSpec' :: CronField -> MinuteSpec

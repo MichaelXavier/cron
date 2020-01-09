@@ -2,9 +2,13 @@
 module System.Test.Cron (tests) where
 
 -------------------------------------------------------------------------------
-import           Data.List                   (find)
-import           Data.List.NonEmpty          (NonEmpty (..))
+import           Control.Monad
+import           Data.List             (find)
+import           Data.List.NonEmpty    (NonEmpty (..))
 import           Data.Time.Clock.POSIX
+import           Hedgehog              as HH
+import qualified Hedgehog.Gen          as Gen
+import qualified Hedgehog.Range        as Range
 -------------------------------------------------------------------------------
 import           SpecHelper
 -------------------------------------------------------------------------------
@@ -107,51 +111,59 @@ describeScheduleMatches = testGroup "scheduleMatches"
       scheduleMatches evenMinute t1 @?= False
       scheduleMatches evenMinute t2 @?= True
 
-    , testProperty "star matches everything" $ \t ->
-            scheduleMatches stars t
+    , testProperty "star matches everything" $ property $ do
+        t <- forAll gen
+        HH.assert (scheduleMatches stars t)
 
-    , testProperty "exact time matches" $ \t ->
-      let (_, m, d, h, mn) = timeComponents t
-          sched = CronSchedule (mkMinuteSpec' (Field (SpecificField' (mkSpecificField' mn))))
-                               (mkHourSpec' (Field (SpecificField' (mkSpecificField' h))))
-                               (mkDayOfMonthSpec' (Field (SpecificField' (mkSpecificField' d))))
-                               (mkMonthSpec' (Field (SpecificField' (mkSpecificField' m))))
-                               (mkDayOfWeekSpec' (Field Star))
-      in scheduleMatches sched t
+    , testProperty "exact time matches" $ property $ do
+        t <- forAll gen
+        let (_, m, d, h, mn) = timeComponents t
+            sched = CronSchedule (mkMinuteSpec' (Field (SpecificField' (mkSpecificField' mn))))
+                                 (mkHourSpec' (Field (SpecificField' (mkSpecificField' h))))
+                                 (mkDayOfMonthSpec' (Field (SpecificField' (mkSpecificField' d))))
+                                 (mkMonthSpec' (Field (SpecificField' (mkSpecificField' m))))
+                                 (mkDayOfWeekSpec' (Field Star))
+        HH.assert (scheduleMatches sched t)
 
-    , testProperty "any time with the same minute as n * * * * matches" $ arbitraryTimeFields $ \y m d h mn ->
-      let sched = stars { minute = mkMinuteSpec' (Field (SpecificField' (mkSpecificField' mn))) }
-          t     = day' y m d h mn
-      in scheduleMatches sched t
+    , testProperty "any time with the same minute as n * * * * matches" $ property $ do
+        (y, m, d, h, mn) <- forAll genTimeFields
+        let sched = stars { minute = mkMinuteSpec' (Field (SpecificField' (mkSpecificField' mn))) }
+            t     = day' y m d h mn
+        HH.assert (scheduleMatches sched t)
 
-    , testProperty "any time with the diff minute as n * * * * does not match" $ arbitraryTimeFields $ \y m d h mn ->
-      let sched = stars { minute = mkMinuteSpec' (Field (SpecificField' (mkSpecificField' (stepMax 59 mn)))) }
-          t     = day' y m d h mn
-      in not $ scheduleMatches sched t
+    , testProperty "any time with the diff minute as n * * * * does not match" $ property $ do
+        (y, m, d, h, mn) <- forAll genTimeFields
+        let sched = stars { minute = mkMinuteSpec' (Field (SpecificField' (mkSpecificField' (stepMax 59 mn)))) }
+            t     = day' y m d h mn
+        HH.assert (not (scheduleMatches sched t))
 
-    , testProperty "any time with the same hour as * n * * * matches" $ arbitraryTimeFields $ \y m d h mn ->
-      let sched = stars { hour = mkHourSpec' (Field (SpecificField' (mkSpecificField' h))) }
-          t     = day' y m d h mn
-      in scheduleMatches sched t
+    , testProperty "any time with the same hour as * n * * * matches" $ property $ do
+        (y, m, d, h, mn) <- forAll genTimeFields
+        let sched = stars { hour = mkHourSpec' (Field (SpecificField' (mkSpecificField' h))) }
+            t     = day' y m d h mn
+        HH.assert (scheduleMatches sched t)
 
-    , testProperty "any time with the diff hour as * n * * * does not match" $ arbitraryTimeFields $ \y m d h mn ->
-      let sched = stars { hour = mkHourSpec' (Field (SpecificField' (mkSpecificField' (stepMax 23 h)))) }
-          t     = day' y m d h mn
-      in not $ scheduleMatches sched t
+    , testProperty "any time with the diff hour as * n * * * does not match" $ property $ do
+        (y, m, d, h, mn) <- forAll genTimeFields
+        let sched = stars { hour = mkHourSpec' (Field (SpecificField' (mkSpecificField' (stepMax 23 h)))) }
+            t     = day' y m d h mn
+        HH.assert (not (scheduleMatches sched t))
 
-    , testProperty "any time with the same day as * * n * * matches" $ \t ->
-      let (_, m, d, h, mn) = timeComponents t
-          sched = CronSchedule (mkMinuteSpec' (Field (SpecificField' (mkSpecificField' mn))))
-                               (mkHourSpec' (Field (SpecificField' (mkSpecificField' h))))
-                               (mkDayOfMonthSpec' (Field (SpecificField' (mkSpecificField' d))))
-                               (mkMonthSpec' (Field (SpecificField' (mkSpecificField' m))))
-                               (mkDayOfWeekSpec' (Field Star))
-      in scheduleMatches sched t
+    , testProperty "any time with the same day as * * n * * matches" $ property $ do
+        t <- forAll gen
+        let (_, m, d, h, mn) = timeComponents t
+            sched = CronSchedule (mkMinuteSpec' (Field (SpecificField' (mkSpecificField' mn))))
+                                 (mkHourSpec' (Field (SpecificField' (mkSpecificField' h))))
+                                 (mkDayOfMonthSpec' (Field (SpecificField' (mkSpecificField' d))))
+                                 (mkMonthSpec' (Field (SpecificField' (mkSpecificField' m))))
+                                 (mkDayOfWeekSpec' (Field Star))
+        HH.assert (scheduleMatches sched t)
 
-    , testProperty "any time with the diff day as * * n * * does not match" $ arbitraryTimeFields $ \y m d h mn ->
-      let sched = stars { dayOfMonth = mkDayOfMonthSpec' (Field (SpecificField' (mkSpecificField' (stepMax 31 d)))) }
-          t     = day' y m d h mn
-      in not $ scheduleMatches sched t
+    , testProperty "any time with the diff day as * * n * * does not match" $ property $ do
+        (y, m, d, h, mn) <- forAll genTimeFields
+        let sched = stars { dayOfMonth = mkDayOfMonthSpec' (Field (SpecificField' (mkSpecificField' (stepMax 31 d)))) }
+            t     = day' y m d h mn
+        HH.assert (not (scheduleMatches sched t))
 
   ]
 
@@ -159,28 +171,17 @@ describeScheduleMatches = testGroup "scheduleMatches"
         day' y m d h mn = UTCTime (fromGregorian y m d) (diffTime h mn)
         diffTime h mn = timeOfDayToTime $ TimeOfDay h mn 1
 
-arbitraryTimeFields
-    :: (Num r
-       , Num r1
-       , Num r2
-       , Num r3
-       , Ord r
-       , Ord r1
-       , Ord r2
-       , Ord r3
-       )
-    => (a -> r -> r1 -> r2 -> r3 -> t)
-    -> Positive a
-    -> Positive r
-    -> Positive r1
-    -> Positive r2
-    -> Positive r3
-    -> t
-arbitraryTimeFields f y m d h mn = f (getPositive y)
-                                     (min 12 $ getPositive m)
-                                     (min 28 $ getPositive d)
-                                     (min 23 $ getPositive h)
-                                     (min 59 $ getPositive mn)
+
+genTimeFields
+  :: Gen (Integer, Int, Int, Int, Int)
+genTimeFields = do
+  y <- Gen.integral (Range.linear 0 9999)
+  m <- Gen.int (Range.linear 1 12)
+  d <- Gen.int (Range.linear 1 28)
+  h <- Gen.int (Range.linear 1 23)
+  mn <- Gen.int (Range.linear 1 59)
+  pure (y, m, d, h, mn)
+
 
 hoursMins :: DiffTime -> (Int, Int)
 hoursMins uTime = (hr, mn)
@@ -255,32 +256,49 @@ describeCrontabEntryShow = testGroup "CrontabEntry Show"
 
 describeNextMatch :: TestTree
 describeNextMatch = testGroup "nextMatch"
-  [ testProperty "is always in the future (at least 1 minute advanced)" $ \cs t ->
+  [ testProperty "is always in the future (at least 1 minute advanced)" $ property $ do
+      cs <- forAll gen
+      t <- forAll gen
       let tSecs = floor (utcTimeToPOSIXSeconds t) :: Integer
           minT2 = posixSecondsToUTCTime (fromInteger ((tSecs `div` 60) + 1) * 60)
-      in case nextMatch cs t of
-           Just t2 -> t2 >= minT2
-           Nothing -> True
-  , testProperty "always produces a time that will match the schedule" $ \cs t ->
       case nextMatch cs t of
-        Just t2 -> counterexample (show t2 <> " does not match " <> show cs) (scheduleMatches cs t2)
-        Nothing -> property True
+        Just t2 -> HH.assert (t2 >= minT2)
+        Nothing -> success
+  , testProperty "always produces a time that will match the schedule" $ property $ do
+      cs <- forAll gen
+      t <- forAll gen
+      case nextMatch cs t of
+        Just t2 -> do
+          unless (scheduleMatches cs t2) $ do
+            annotate (show t2 <> " does not match " <> show cs)
+            failure
+        Nothing -> success
   -- , testCase "special case" $ do
   --     let Right cs = parseOnly cronSchedule "* * * * *"
   --         t = mkTime 1858 11 20 0 0 1
   --     nextMatch cs t @?= Just (mkTime 1858 11 20 0 1 0)
   -- this test has a really variable workload but is usually quite slow because it has to walk minute by minute until it finds the test case, so we'll set an upper bound here
-  , localOption (QuickCheckTests 20) $ testProperty "returns the first minute in the future that matches" $ \cs t ->
+  --TODO: resize 20?
+  , testProperty "returns the first minute in the future that matches" $ property $ do
+      cs <- forAll gen
+      t <- forAll gen
       case nextMatch cs t of
         Just res ->
           let mactual = find (scheduleMatches cs) ((takeWhile (<= res) (nextMinutes t)))
           in case mactual of
              Just actual -> res `sameMinute` actual
-             Nothing -> counterexample ("Could not find a next minute match for " <> show t <> ", expected " <> show res) False
-        Nothing -> property True
-  , testProperty "a schedule that produces Just for one t will produce it for any t" $ \cs t1 t2 -> isJust (nextMatch cs t1) ==>
-      counterexample ("nextMatch produced Just for " <> show t1 <> " but not " <> show t2)
-                     (isJust (nextMatch cs t2) == True)
+             Nothing -> do
+               annotate ("Could not find a next minute match for " <> show t <> ", expected " <> show res)
+               failure
+        Nothing -> success
+  , testProperty "a schedule that produces Just for one t will produce it for any t" $ property $ do
+      cs <- forAll gen
+      t1 <- forAll (Gen.filter (isJust . nextMatch cs) gen)
+      t2 <- forAll gen
+      unless (isJust (nextMatch cs t2) == True) $ do
+        annotate ("nextMatch produced Just for " <> show t1 <> " but not " <> show t2)
+        failure
+
   , testCase "does not match impossible dates (restricted dow/dom bug)" $ do
       let t = posixSecondsToUTCTime 0
       let cs = stars { month = mkMonthSpec' (Field (SpecificField' (mkSpecificField' 9)))
@@ -291,7 +309,7 @@ describeNextMatch = testGroup "nextMatch"
   ]
 
 
-sameMinute :: UTCTime -> UTCTime -> Property
+sameMinute :: (MonadTest m) => UTCTime -> UTCTime -> m ()
 sameMinute t1 t2 = t1' === t2'
   where
     t1' = t1 { utctDayTime = roundToMinute (utctDayTime t1)}

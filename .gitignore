@@ -7,3 +7,4 @@ cabal-dev
 *.chi
 *.chs.h
 .stack-work/
+stack.yaml.lock

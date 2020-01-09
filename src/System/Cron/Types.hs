@@ -60,7 +60,7 @@ import qualified Data.Foldable       as FT
 import           Data.Ix
 import           Data.List.NonEmpty  (NonEmpty (..))
 import qualified Data.List.NonEmpty  as NE
-import           Data.Monoid
+import           Data.Monoid         as Monoid
 import           Data.Text           (Text)
 import qualified Data.Text           as T
 import           Data.Typeable       (Typeable)
@@ -137,7 +137,7 @@ data CronSchedule = CronSchedule {
 
 
 instance Show CronSchedule where
-  show cs = "CronSchedule " <> T.unpack (showT cs)
+  show cs = "CronSchedule " Monoid.<> T.unpack (showT cs)
 
 
 instance ShowT CronSchedule where
