@@ -1,5 +1,5 @@
 Name:                cron
-Version:             0.6.1
+Version:             0.6.2
 Description:
   Cron data structure and Attoparsec parser. The idea is to embed it in larger
   systems which want to roll their own scheduled tasks in a format that people
@@ -20,10 +20,9 @@ Copyright:           Copyright: (c) 2012-2014 Michael Xavier
 Maintainer:          Michael Xavier <michael@michaelxavier.net>
 Build-Type:          Simple
 Stability:           experimental
-Tested-With:         GHC == 7.4.1
-                   , GHC == 7.6.3
-                   , GHC == 7.8.3
-                   , GHC == 7.10.1
+Tested-With:         GHC == 8.4.4
+                   , GHC == 8.6.5
+                   , GHC == 8.8.1
 Cabal-Version:       >= 1.10
 Extra-Source-Files:
   README.md
