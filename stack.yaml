@@ -1,7 +1,9 @@
 resolver: lts-14.20
 packages:
-- '.'
-extra-deps: []
+  - '.'
+extra-deps:
+  - tasty-hedgehog-1.0.0.1@sha256:f632aa57399fbd9a0910757bd550e702e13752f9fd1fced0cc9e6b54dd49c7d8,1823
+  - hedgehog-1.0.1@sha256:b65b1ebde7b7fe8e693070916e45aa2ed63eea5e3f84ac3a8f9a0b7f8fcf0337,4465
 flags:
   cron:
     lib-Werror: true
