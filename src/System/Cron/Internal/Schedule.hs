@@ -1,5 +1,3 @@
-{-# LANGUAGE CPP #-}
-
 module System.Cron.Internal.Schedule (findNextMinuteDelay') where
 
 import           Data.Time
