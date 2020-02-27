@@ -15,4 +15,4 @@ oneMinute :: NominalDiffTime
 oneMinute = 60
 
 truncateToPlainMinute :: DiffTime -> DiffTime
-truncateToPlainMinute = fromIntegral . (* 60) . (`quot` 60) . truncate
+truncateToPlainMinute = fromIntegral . (* 60) . (`quot` 60) . (truncate :: DiffTime -> Integer)
