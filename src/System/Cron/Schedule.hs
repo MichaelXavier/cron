@@ -87,7 +87,7 @@ instance Show Job where
 
 
 -------------------------------------------------------------------------------
-data ScheduleError = ParseError String
+newtype ScheduleError = ParseError String
                    deriving (Show)
 
 
@@ -156,15 +156,17 @@ forkJob (Job s a) = forkIO $ forever $ do
 
 -------------------------------------------------------------------------------
 findNextMinuteDelay :: IO (UTCTime, Int)
-findNextMinuteDelay = do
-        now <- getCurrentTime
-        let f     = formatTime defaultTimeLocale fmtFront now
-            m     = (read (formatTime defaultTimeLocale fmtMinutes now) :: Int) + 1
-            r     = f ++ ":" ++ if length (show m) == 1 then "0" ++ show m else show m
-            next  = readTime' defaultTimeLocale fmtRead r :: UTCTime
-            diff  = diffUTCTime next now
-            delay = round (realToFrac (diff * 1000000) :: Double) :: Int
-        return (next, delay)
-    where fmtFront   = "%F %H"
-          fmtMinutes = "%M"
-          fmtRead    = "%F %H:%M"
+findNextMinuteDelay = findNextMinuteDelay' <$> getCurrentTime
+
+findNextMinuteDelay' :: UTCTime -> (UTCTime, Int)
+findNextMinuteDelay' now = (next, delay)
+  where 
+    f     = formatTime defaultTimeLocale fmtFront now
+    m     = (read (formatTime defaultTimeLocale fmtMinutes now) :: Int) + 1
+    r     = f ++ ":" ++ if length (show m) == 1 then "0" ++ show m else show m
+    next  = readTime' defaultTimeLocale fmtRead r :: UTCTime
+    diff  = diffUTCTime next now
+    delay = round (realToFrac (diff * 1000000) :: Double) :: Int
+    fmtFront   = "%F %H"
+    fmtMinutes = "%M"
+    fmtRead    = "%F %H:%M"
