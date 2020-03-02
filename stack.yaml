@@ -1,7 +1,11 @@
-resolver: lts-14.20
-packages:
-  - '.'
-flags:
-  cron:
-    lib-Werror: true
-extra-package-dbs: []
+resolver : lts -15.2
+
+packages
+  : - '.'
+
+flags
+  : cron
+  : lib - Werror
+  : true
+
+extra - package - dbs : []
