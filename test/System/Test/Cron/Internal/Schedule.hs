@@ -34,6 +34,10 @@ describeFindNextMinuteDelay' =
         let now = UTCTime {utctDay = ModifiedJulianDay 58906, utctDayTime = picosecondsToDiffTime 32400123456789012} -- 2020-02-27 09:00:00.123456789012 UTC
             nextMinute = UTCTime {utctDay = ModifiedJulianDay 58906, utctDayTime = picosecondsToDiffTime 32460000000000000} -- 2020-02-27 09:01:00.000000000 UTC
          in findNextMinuteDelay' now @?= (nextMinute, 59876543),
+      testCase "should find next minute before midnight." $
+        let now = UTCTime {utctDay = ModifiedJulianDay 58906, utctDayTime = picosecondsToDiffTime 86387123456789012} -- 2020-02-27 23:59:47.123456789012 UTC
+            nextMinute = UTCTime {utctDay = ModifiedJulianDay 58907, utctDayTime = picosecondsToDiffTime 0} -- 2020-02-28 00:00:00.000000000 UTC
+         in findNextMinuteDelay' now @?= (nextMinute, 12876543),
       testProperty "invariance: next minute is after and no more than 60s later." $ property $ do
         now <- forAll gen
         let (nextMinute, delay) = findNextMinuteDelay' now
