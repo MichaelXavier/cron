@@ -49,6 +49,7 @@ library
                    , System.Cron.Internal.Describe.Types
                    , System.Cron.Internal.Describe.Utils
                    , System.Cron.Internal.Check
+                   , System.Cron.Internal.Schedule
                    , System.Cron.Describe
                    , System.Cron.Parser
                    , System.Cron.Schedule
@@ -80,6 +81,7 @@ test-suite test
                   , System.Test.Cron.Describe
                   , System.Test.Cron.Parser
                   , System.Test.Cron.Schedule
+                  , System.Test.Cron.Internal.Schedule
   Build-Depends:    base
                   , cron
                   , tasty

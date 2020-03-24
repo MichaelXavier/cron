@@ -45,8 +45,7 @@ describeExecSchedule = testGroup "execSchedule"
   ]
     where fireAndWait = do
             v    <- newEmptyMVar
-            tids <- execSchedule $ do
-                addJob (flipMVar v) "* * * * *"
+            tids <- execSchedule $ addJob (flipMVar v) "* * * * *"
             threadDelay (1000000 * 60)
             mapM_ killThread tids
             takeMVar v

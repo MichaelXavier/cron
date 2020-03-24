@@ -4,7 +4,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE TemplateHaskell       #-}
+
 module SpecHelper
     ( module X
     , module SpecHelper
@@ -18,8 +18,10 @@ import qualified Data.List.NonEmpty    as NE
 import           Data.Maybe            as X
 import           Data.Monoid           as X
 import           Data.Text             (Text)
-import           Data.Time.Calendar    as X (fromGregorian, toGregorian)
+import           Data.Time.Calendar    as X (Day (..), fromGregorian,
+                                             toGregorian)
 import           Data.Time.Clock       as X (DiffTime, UTCTime (..), addUTCTime,
+                                             diffUTCTime, picosecondsToDiffTime,
                                              secondsToDiffTime)
 import qualified Data.Time.Clock.POSIX as POSIX
 import           Data.Time.LocalTime   as X
@@ -114,8 +116,7 @@ genUTCTime' = fmap POSIX.posixSecondsToUTCTime . genPOSIXTime
 
 
 genPOSIXTime :: Range.Range Int -> Gen POSIX.POSIXTime
-genPOSIXTime rnge = do
-  fromInteger . toInteger <$> Gen.int rnge
+genPOSIXTime rnge = fromInteger . toInteger <$> Gen.int rnge
 
 
 mkMinuteSpec' :: CronField -> MinuteSpec
