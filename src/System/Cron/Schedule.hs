@@ -41,6 +41,8 @@ module System.Cron.Schedule
     , runScheduleT
 
     , execSchedule
+
+    , forkJob
     ) where
 
 
