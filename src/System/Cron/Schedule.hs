@@ -49,6 +49,7 @@ module System.Cron.Schedule
 import           Control.Applicative
 #endif
 import           Control.Concurrent
+import           Control.Monad (forever, when, void)
 import           Control.Monad.Except
 import           Control.Monad.Identity
 import           Control.Monad.State
