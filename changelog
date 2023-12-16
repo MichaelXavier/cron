@@ -1,3 +1,5 @@
+# 0.7.1
+* expose fork job, Jappie Klooster (@jappeace)
 # 0.7.0
 * Fix time parsing error (#41), Julien Debon (@Sir4ur0n)
 # 0.6.2

@@ -31,6 +31,7 @@
 
 module System.Cron.Schedule
     ( Job (..)
+    , forkJob
     , ScheduleError (..)
     , Schedule
     , ScheduleT (..)
