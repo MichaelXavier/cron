@@ -42,6 +42,7 @@ module System.Cron.Schedule
     , runScheduleT
 
     , execSchedule
+    , jobsToSchedule
     ) where
 
 
@@ -95,6 +96,8 @@ newtype ScheduleT m a = ScheduleT { unSchedule :: StateT Jobs (ExceptT ScheduleE
                  , MonadError ScheduleError
                  )
 
+instance MonadTrans ScheduleT where
+    lift = ScheduleT . lift . lift
 
 -------------------------------------------------------------------------------
 runSchedule :: Schedule a -> Either ScheduleError (a, [Job])
@@ -121,6 +124,10 @@ instance (Monad m) => MonadSchedule (ScheduleT m) where
 -- Monitoring engine
 -------------------------------------------------------------------------------
 
+-- | Utility function to initialize a schedule from a set of jobs.
+jobsToSchedule :: [Job] -> Schedule ()
+jobsToSchedule jobs = forM_ jobs $ \(Job schedule action) -> do
+    addJob action (serializeCronSchedule schedule)
 
 -- | Schedule all of the jobs to run at appropriate intervals. Each
 -- job that is launched gets a scheduling thread to itself. Each
