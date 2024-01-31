@@ -4,6 +4,7 @@ module System.Cron.Internal.Describe.Types where
 
 import Data.List  (intercalate)
 import Data.Maybe (catMaybes)
+import Data.Time (TimeLocale, TimeZone)
 
 
 data Descriptor = Descriptor {
@@ -44,7 +45,7 @@ safeIntToWeekDay n
 data Verbosity = Verbose | NotVerbose
 
 
-data TimeFormat = Hour24 | Hour12
+data TimeFormat = Hour24 | Hour12 | CustomTimeFormat TimeZone TimeLocale String
 
 
 data DescribedValue = Concrete String

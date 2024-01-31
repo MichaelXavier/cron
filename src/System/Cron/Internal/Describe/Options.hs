@@ -16,6 +16,7 @@ import Data.Default.Class
 import Data.Semigroup as Semigroup
 -------------------------------------------------------------------------------
 import System.Cron.Internal.Describe.Types
+import Data.Time (TimeZone, TimeLocale)
 -------------------------------------------------------------------------------
 
 
@@ -44,6 +45,13 @@ twentyFourHourFormat = Builder (\o -> o {timeFormat = Hour24} )
 -- (01:00 AM, 10:00 PM, etc)
 twelveHourFormat :: OptionBuilder
 twelveHourFormat = Builder (\o -> o {timeFormat = Hour12} )
+
+
+-- | Return a builder that sets the options to use a custom time format.
+-- This takes in a time zone, a time locale, and a time formatting string defined by:
+-- https://hackage.haskell.org/package/time-1.12.2/docs/Data-Time-Format.html#t:FormatTime
+customFormat :: TimeZone -> TimeLocale -> String -> OptionBuilder
+customFormat z l f = Builder (\o -> o {timeFormat = CustomTimeFormat z l f} )
 
 
 -- | Return a builder that sets the options to be verbose. A verbose description

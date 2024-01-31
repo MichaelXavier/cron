@@ -28,6 +28,7 @@ module System.Cron.Describe
       defaultOpts
     , twentyFourHourFormat
     , twelveHourFormat
+    , customFormat
     , verbose
     , notVerbose
     , OptionBuilder
