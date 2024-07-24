@@ -12,7 +12,7 @@ import           Data.Semigroup              (sconcat)
 import           Data.Time                   (Day, DiffTime, UTCTime (..),
                                               addUTCTime, fromGregorianValid,
                                               toGregorian)
-import           Data.Time.Calendar.WeekDate
+import           Data.Time.Calendar.WeekDate (toWeekDate)
 import qualified Data.Traversable            as FT
 -------------------------------------------------------------------------------
 import           System.Cron.Types           as CT
