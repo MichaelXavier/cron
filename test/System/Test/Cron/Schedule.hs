@@ -32,9 +32,10 @@ describeMonadSchedule = testGroup "MonadSchedule"
   , testCase "should read all three jobs." $
       length s @?= 3
   ]
-  where Right ((), s) = runSchedule $ do addJob noop "* * * * *"
-                                         addJob noop "0 * * * *"
-                                         addJob noop "0 0 * * *"
+  where ((), s) = either (error . show) id $ runSchedule $ do
+                    addJob noop "* * * * *"
+                    addJob noop "0 * * * *"
+                    addJob noop "0 0 * * *"
         noop = return ()
 
 describeExecSchedule :: TestTree
