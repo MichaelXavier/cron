@@ -1,20 +1,17 @@
 module System.Cron.Internal.Describe.Time where
 
 import System.Cron.Internal.Describe.Types
+import Data.Time (formatTime, TimeOfDay (TimeOfDay), defaultTimeLocale, TimeLocale, TimeZone, utc, utcToLocalTimeOfDay)
 
 newtype Minute = Minute Int
 newtype Hour   = Hour Int
 
 format :: TimeFormat -> Minute -> Hour -> String
-format t (Minute m) (Hour h) = leftPad (hour t) ++ ":" ++ leftPad m ++ suffix t
-  where leftPad n
-          | n < 10    = "0" ++ show n
-          | otherwise = show n
-        suffix Hour24 = ""
-        suffix Hour12
-          | h < 12    = " AM"
-          | otherwise = " PM"
-        hour Hour24 = h
-        hour Hour12
-          | h > 12 = h `mod` 12
-          | otherwise = h
+format Hour24 = fmtTime utc defaultTimeLocale "%R"
+format Hour12 = fmtTime utc defaultTimeLocale "%I:%M %p"
+format (CustomTimeFormat zone locale fmt) = fmtTime zone locale fmt
+
+fmtTime :: TimeZone -> TimeLocale -> String -> Minute -> Hour -> String
+fmtTime zone locale fmt (Minute m) (Hour h) = formatTime locale fmt tod
+  where
+    tod = snd . utcToLocalTimeOfDay zone $ TimeOfDay h m 0
