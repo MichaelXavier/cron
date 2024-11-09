@@ -1,3 +1,5 @@
+# 0.7.2
+* Replace data-default-class with data-default, Michael Xavier (@MichaelXavier)
 # 0.7.1
 * expose fork job, Jappie Klooster (@jappeace)
 # 0.7.0

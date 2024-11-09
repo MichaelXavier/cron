@@ -1,5 +1,5 @@
 Name:                cron
-Version:             0.7.1
+Version:             0.7.2
 Description:
   Cron data structure and Attoparsec parser. The idea is to embed it in larger
   systems which want to roll their own scheduled tasks in a format that people
@@ -64,7 +64,7 @@ library
                    , mtl             >= 2.0.1
                    , mtl-compat      >= 0.2.1
                    , semigroups
-                   , data-default-class >= 0.0.1
+                   , data-default
   if flag(lib-Werror)
     ghc-options: -Werror
 
